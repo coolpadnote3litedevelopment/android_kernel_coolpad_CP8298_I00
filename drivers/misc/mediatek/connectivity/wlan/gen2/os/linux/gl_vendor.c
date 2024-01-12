@@ -850,66 +850,70 @@ nla_put_failure:
 
 int mtk_cfg80211_vendor_get_channel_list(struct wiphy *wiphy, struct wireless_dev *wdev, const void *data, int data_len)
 {
-	INT_32 i4Status = -EINVAL;
+	P_GLUE_INFO_T prGlueInfo;
 	struct nlattr *attr;
 	UINT_32 band = 0;
-	UINT_32 num_channel;
-	wifi_channel channels[4];
+	UINT_8 ucNumOfChannel, i, j;
+	RF_CHANNEL_INFO_T aucChannelList[64];
+	UINT_32 num_channels;
+	wifi_channel channels[64];
 	struct sk_buff *skb;
 
-	ASSERT(wiphy);
-	ASSERT(wdev);
+	ASSERT(wiphy && wdev);
 	if ((data == NULL) || !data_len)
-		return i4Status;
-	DBGLOG(REQ, INFO, "%s for vendor command: data_len=%d \r\n", __func__, data_len);
+		return -EINVAL;
 
 	attr = (struct nlattr *)data;
 	if (attr->nla_type == GSCAN_ATTRIBUTE_BAND)
 		band = nla_get_u32(attr);
-	DBGLOG(REQ, INFO, "get channel list: band=%d \r\n", band);
 
-	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(wifi_channel) * 4);
+	prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
+	if (!prGlueInfo)
+		return -EFAULT;
+
+	switch (band) {
+	case 1: /* 2.4G band */
+		rlmDomainGetChnlList(prGlueInfo->prAdapter, BAND_2G4,
+				     64, &ucNumOfChannel, aucChannelList);
+		break;
+	case 2: /* 5G band */
+		rlmDomainGetChnlList(prGlueInfo->prAdapter, BAND_5G,
+				     64, &ucNumOfChannel, aucChannelList);
+		break;
+	default:
+		ucNumOfChannel = 0;
+		break;
+	}
+
+	kalMemZero(channels, sizeof(channels));
+	for (i = 0, j = 0; i < ucNumOfChannel; i++) {
+		/* We need to report frequency list to HAL */
+		channels[j] = nicChannelNum2Freq(aucChannelList[i].ucChannelNum) / 1000;
+		if (channels[j] == 0)
+			continue;
+		j++;
+	}
+	num_channels = j;
+	DBGLOG(REQ, INFO, "Get channel list for band: %d, num_channels=%d\n", band, num_channels);
+
+	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(channels));
 	if (!skb) {
-		DBGLOG(REQ, TRACE, "%s allocate skb failed:%x\n", __func__, i4Status);
+		DBGLOG(REQ, ERROR, "Allocate skb failed\n");
 		return -ENOMEM;
 	}
 
-	kalMemZero(channels, sizeof(wifi_channel) * 4);
-	/*rStatus = kalIoctl(prGlueInfo,
-	   wlanoidQueryStatistics,
-	   &channel,
-	   sizeof(channel),
-	   TRUE,
-	   TRUE,
-	   TRUE,
-	   FALSE,
-	   &u4BufLen); */
-
-	/* only for test */
-	num_channel = 3;
-	channels[0] = 2412;
-	channels[1] = 2413;
-	channels[2] = 2414;
-	/*NLA_PUT_U32(skb, GSCAN_ATTRIBUTE_NUM_CHANNELS, num_channel);*/
-	{
-		unsigned int __tmp = num_channel;
-
-		if (unlikely(nla_put(skb, GSCAN_ATTRIBUTE_NUM_CHANNELS,
-			sizeof(unsigned int), &__tmp) < 0))
-			goto nla_put_failure;
-	}
-
-	/*NLA_PUT(skb, GSCAN_ATTRIBUTE_CHANNEL_LIST, (sizeof(wifi_channel) * num_channel), channels);*/
-	if (unlikely(nla_put(skb, GSCAN_ATTRIBUTE_CHANNEL_LIST,
-		(sizeof(wifi_channel) * num_channel), channels) < 0))
+	if (unlikely(nla_put_u32(skb, GSCAN_ATTRIBUTE_NUM_CHANNELS, num_channels) < 0))
 		goto nla_put_failure;
 
-	i4Status = cfg80211_vendor_cmd_reply(skb);
-	return i4Status;
+	if (unlikely(nla_put(skb, GSCAN_ATTRIBUTE_CHANNEL_LIST,
+		(sizeof(wifi_channel) * num_channels), channels) < 0))
+		goto nla_put_failure;
+
+	return cfg80211_vendor_cmd_reply(skb);
 
 nla_put_failure:
 	kfree_skb(skb);
-	return i4Status;
+	return -EFAULT;
 }
 
 int mtk_cfg80211_vendor_llstats_get_info(struct wiphy *wiphy, struct wireless_dev *wdev, const void *data, int data_len)
