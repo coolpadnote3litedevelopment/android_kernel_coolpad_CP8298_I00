@@ -676,11 +676,21 @@ static irqreturn_t video_intr_dlr2(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+#define VCODEC_NC_BUF_MAX 64
+
+static struct {
+	VAL_ULONG_T va;
+	VAL_ULONG_T pa;
+	VAL_ULONG_T size;
+} vcodec_nc_buf[VCODEC_NC_BUF_MAX];
+static DEFINE_MUTEX(vcodec_nc_buf_lock);
+
 static long vcodec_alloc_non_cache_buffer(unsigned long arg)
 {
 	VAL_UINT8_T *user_data_addr;
 	VAL_MEMORY_T rTempMem;
 	VAL_LONG_T ret;
+	int i;
 
 	MODULE_MFV_LOGE("VCODEC_ALLOC_NON_CACHE_BUFFER + tid = %d\n", current->pid);
 
@@ -696,6 +706,23 @@ static long vcodec_alloc_non_cache_buffer(unsigned long arg)
 	if ((0 == rTempMem.u4ReservedSize) || (0 == rTempMem.pvMemPa)) {
 		MODULE_MFV_LOGE("[ERROR] dma_alloc_coherent fail in VCODEC_ALLOC_NON_CACHE_BUFFER\n");
 		return -EFAULT;
+	}
+
+	mutex_lock(&vcodec_nc_buf_lock);
+	for (i = 0; i < VCODEC_NC_BUF_MAX; i++) {
+		if (vcodec_nc_buf[i].va == 0) {
+			vcodec_nc_buf[i].va = rTempMem.u4ReservedSize;
+			vcodec_nc_buf[i].pa = (VAL_ULONG_T)rTempMem.pvMemPa;
+			vcodec_nc_buf[i].size = rTempMem.u4MemSize;
+			break;
+		}
+	}
+	mutex_unlock(&vcodec_nc_buf_lock);
+	if (i == VCODEC_NC_BUF_MAX) {
+		MODULE_MFV_LOGE("[ERROR] VCODEC_ALLOC_NON_CACHE_BUFFER, buffer table is full\n");
+		dma_free_coherent(0, rTempMem.u4MemSize, (void *)rTempMem.u4ReservedSize,
+				  (dma_addr_t)rTempMem.pvMemPa);
+		return -ENOMEM;
 	}
 
 	MODULE_MFV_LOGD("[VCODEC] kernel va = 0x%lx, kernel pa = 0x%lx, memory size = %lu\n",
@@ -724,6 +751,7 @@ static long vcodec_free_non_cache_buffer(unsigned long arg)
 	VAL_UINT8_T *user_data_addr;
 	VAL_MEMORY_T rTempMem;
 	VAL_LONG_T ret;
+	int i;
 
 	MODULE_MFV_LOGE("VCODEC_FREE_NON_CACHE_BUFFER + tid = %d\n", current->pid);
 
@@ -732,6 +760,24 @@ static long vcodec_free_non_cache_buffer(unsigned long arg)
 	if (ret) {
 		MODULE_MFV_LOGE("[ERROR] VCODEC_FREE_NON_CACHE_BUFFER, copy_from_user failed: %lu\n", ret);
 		return -EFAULT;
+	}
+
+	mutex_lock(&vcodec_nc_buf_lock);
+	for (i = 0; i < VCODEC_NC_BUF_MAX; i++) {
+		if (vcodec_nc_buf[i].va != 0 &&
+		    vcodec_nc_buf[i].pa == (VAL_ULONG_T)rTempMem.pvMemPa &&
+		    vcodec_nc_buf[i].size == rTempMem.u4MemSize) {
+			rTempMem.u4ReservedSize = vcodec_nc_buf[i].va;
+			vcodec_nc_buf[i].va = 0;
+			vcodec_nc_buf[i].pa = 0;
+			vcodec_nc_buf[i].size = 0;
+			break;
+		}
+	}
+	mutex_unlock(&vcodec_nc_buf_lock);
+	if (i == VCODEC_NC_BUF_MAX) {
+		MODULE_MFV_LOGE("[ERROR] VCODEC_FREE_NON_CACHE_BUFFER, unknown buffer\n");
+		return -EINVAL;
 	}
 
 	dma_free_coherent(0, rTempMem.u4MemSize, (void *)rTempMem.u4ReservedSize, (dma_addr_t)rTempMem.pvMemPa);
