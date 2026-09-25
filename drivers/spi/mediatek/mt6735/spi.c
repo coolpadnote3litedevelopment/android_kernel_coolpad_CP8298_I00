@@ -1377,6 +1377,7 @@ static int __init mt_spi_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, " device %s: alloc spi master fail.\n", dev_name(&pdev->dev));
 		goto out;
 	}
+	master->dev.of_node = pdev->dev.of_node;  //add for devicetree by peihonggang
 	/*hardware can only connect 1 slave.if you want to multiple, using gpio CS */
 	master->num_chipselect = 2;
 
