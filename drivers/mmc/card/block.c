@@ -3167,6 +3167,10 @@ static const struct mmc_fixup blk_fixups[] =
 	END_FIXUP
 };
 
+/*yulong add for yl_params&yl_panic 20151217*/
+extern int yl_params_init(struct mmc_card *card);
+extern int yl_panic_init(struct mmc_card *card);
+/*yulong end*/
 static int mmc_blk_probe(struct mmc_card *card)
 {
 	struct mmc_blk_data *md, *part_md;
@@ -3198,6 +3202,15 @@ static int mmc_blk_probe(struct mmc_card *card)
 #ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
 	mmc_set_bus_resume_policy(card->host, 1);
 #endif
+	/*yulong add for yl_params&yl_panic 20151217*/
+	if (strcmp(md->disk->disk_name, "mmcblk0")==0)
+	  {
+	      yl_params_init(card);
+	      yl_panic_init(card);
+	      printk(KERN_ERR"call yl_params_init!\n");
+	      printk(KERN_ERR"call yl_panic_init!\n");
+	   }
+	/*yulong end*/
 	if (mmc_add_disk(md))
 		goto out;
 
