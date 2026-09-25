@@ -614,7 +614,7 @@ static int key_check(int b)
 		return DW_KEY;
 	else if ((b < accdet_dts_data.three_key.up_key) && (b >= accdet_dts_data.three_key.mid_key))
 		return UP_KEY;
-	else if (b < accdet_dts_data.three_key.mid_key)
+	else if ((b < accdet_dts_data.three_key.mid_key) && (b >= 0))
 		return MD_KEY;
 	ACCDET_DEBUG("[accdet] leave key_check!!\n");
 	return NO_KEY;
@@ -630,7 +630,7 @@ static int key_check(int b)
 		return UP_KEY;
 	else if ((b < accdet_dts_data.four_key.voice_key_four) && (b >= accdet_dts_data.four_key.mid_key_four))
 		return AS_KEY;
-	else if (b < accdet_dts_data.four_key.mid_key_four)
+	else if ((b < accdet_dts_data.four_key.mid_key_four) && (b >= 0))
 		return MD_KEY;
 	ACCDET_DEBUG("[accdet] leave key_check!!\n");
 	return NO_KEY;
