@@ -1,40 +1,24 @@
 #ifndef _CUST_BAT_H_
 #define _CUST_BAT_H_
 
-/* High battery support */
-#define HIGH_BATTERY_VOLTAGE_SUPPORT
-
 /* stop charging while in talking mode */
 #define STOP_CHARGING_IN_TAKLING
 #define TALKING_RECHARGE_VOLTAGE 3800
 #define TALKING_SYNC_TIME		   60
 
-#define BAT_LOW_TEMP_PROTECT_ENABLE
 /* Battery Temperature Protection */
 #define MTK_TEMPERATURE_RECHARGE_SUPPORT
-#define MAX_CHARGE_TEMPERATURE  55
-#define MAX_CHARGE_TEMPERATURE_MINUS_X_DEGREE	50
-#define MIN_CHARGE_TEMPERATURE  0
-#define MIN_CHARGE_TEMPERATURE_PLUS_X_DEGREE	5
-
+#define MAX_CHARGE_TEMPERATURE  46
+#define MAX_CHARGE_TEMPERATURE_MINUS_X_DEGREE	45
+#define MIN_CHARGE_TEMPERATURE  3
+#define MIN_CHARGE_TEMPERATURE_PLUS_X_DEGREE	3
 #define ERR_CHARGE_TEMPERATURE  0xFF
 
-/* linxf 20150827 start battery_common.c*/
-#define MTK_VOLTAGE_RECHARGE_SUPPORT
-#define RECOVERY_CHARGING_VOLTAGE      6000
-/* linxf 20150827 end*/
-
 /* Linear Charging Threshold */
-#define V_PRE2CC_THRES	 		3400	//mV
-#define V_CC2TOPOFF_THRES		4110
-
-#ifdef HIGH_BATTERY_VOLTAGE_SUPPORT
-#define RECHARGING_VOLTAGE      4180
-#else
+#define V_PRE2CC_THRES 3400
+#define V_CC2TOPOFF_THRES		4050
 #define RECHARGING_VOLTAGE      4110
-#endif
-
-#define CHARGING_FULL_CURRENT    100	//mA
+#define CHARGING_FULL_CURRENT    100
 
 /* Charging Current Setting */
 #define USB_CHARGER_CURRENT_SUSPEND			0
@@ -42,8 +26,15 @@
 #define USB_CHARGER_CURRENT_CONFIGURED		CHARGE_CURRENT_500_00_MA
 
 #define USB_CHARGER_CURRENT					CHARGE_CURRENT_500_00_MA
-#define AC_CHARGER_CURRENT					CHARGE_CURRENT_800_00_MA
-#define NON_STD_AC_CHARGER_CURRENT			CHARGE_CURRENT_800_00_MA
+//modify by liuwenbo@yulong.com 2015.04.17 to improve charge current
+#if defined(CONFIG_MTK_BQ24296_SUPPORT)
+#define AC_CHARGER_CURRENT					CHARGE_CURRENT_2000_00_MA
+#define NON_STD_AC_CHARGER_CURRENT			CHARGE_CURRENT_2000_00_MA
+
+#elif defined(CONFIG_MTK_FAN5405_SUPPORT)
+#define AC_CHARGER_CURRENT                  CHARGE_CURRENT_850_00_MA
+#define NON_STD_AC_CHARGER_CURRENT			CHARGE_CURRENT_500_00_MA
+#endif
 
 #define CHARGING_HOST_CHARGER_CURRENT       CHARGE_CURRENT_650_00_MA
 #define APPLE_0_5A_CHARGER_CURRENT          CHARGE_CURRENT_500_00_MA
@@ -56,6 +47,7 @@
 #define BATTERY_AVERAGE_SIZE 30
 
 /* charger error check */
+#define BAT_LOW_TEMP_PROTECT_ENABLE         // stop charging if temp < MIN_CHARGE_TEMPERATURE Added by liuwenbo@yulong.com
 #define V_CHARGER_ENABLE 0				/* 1:ON , 0:OFF	*/
 #define V_CHARGER_MAX 6500				/* 6.5 V	*/
 #define V_CHARGER_MIN 4400				/* 4.4 V	*/
@@ -64,7 +56,12 @@
 #define ONEHUNDRED_PERCENT_TRACKING_TIME	10	/* 10 second	*/
 #define NPERCENT_TRACKING_TIME 20	/* 20 second	*/
 #define SYNC_TO_REAL_TRACKING_TIME 60	/* 60 second	*/
+/*modify begin 3400 to 3450 by sunxiaogang@yulong.com for battery fuel down fast when low battery*/
 #define V_0PERCENT_TRACKING							3450 /*3450mV	*/
+#define V_0PERCENT_TRACKING_TIME                40      //40 second
+/*modify end 3400 to 3450 by sunxiaogang@yulong.com*/
+//#define CUST_SYSTEM_OFF_VOLTAGE 3400
+//#define SYSTEM_OFF_VOLTAGE CUST_SYSTEM_OFF_VOLTAGE
 
 /* Battery Notify */
 #define BATTERY_NOTIFY_CASE_0001_VCHARGER
@@ -74,6 +71,8 @@
 //#define BATTERY_NOTIFY_CASE_0004_VBAT
 //#define BATTERY_NOTIFY_CASE_0005_TOTAL_CHARGINGTIME
 */
+/* High battery support */
+#define HIGH_BATTERY_VOLTAGE_SUPPORT
 
 /* JEITA parameter */
 /*#define MTK_JEITA_STANDARD_SUPPORT*/
@@ -115,7 +114,9 @@
 #endif
 
 #ifdef CONFIG_MTK_FAN5405_SUPPORT
-#define FAN5405_BUSNUM 1
+/*modify by fubin1@yulong.com at 20150512 to set i2c bus num start.*/
+#define FAN5405_BUSNUM 2
+/*modify by fubin1@yulong.com at 20150512 to set i2c bus num end.*/
 #endif
 
 #define MTK_PLUG_OUT_DETECTION

@@ -42,6 +42,7 @@
 #include <mt-plat/upmu_common.h>
 
 
+#define MTK_MULTI_BAT_PROFILE_SUPPORT
 /* ============================================================ // */
 /* define */
 /* ============================================================ // */
@@ -49,7 +50,7 @@
 
 static DEFINE_MUTEX(FGADC_mutex);
 
-int Enable_FGADC_LOG = 0;
+int Enable_FGADC_LOG = 7;
 
 /* ============================================================ // */
 /* global variable */
@@ -253,16 +254,23 @@ void battery_meter_reset_sleep_time(void)
 #ifdef MTK_MULTI_BAT_PROFILE_SUPPORT
 /*extern int IMM_GetOneChannelValue_Cali(int Channel, int *voltage);*/
 unsigned int g_fg_battery_id = 0;
-
+/*add begin by sunxiaogang@yulong.com 2015.05.27 to add battery id in factory mode*/
+extern int get_device_info(char* buf);
+/*add end gy sunxiaogang@yulong.com*/
 #ifdef MTK_GET_BATTERY_ID_BY_AUXADC
 void fgauge_get_profile_id(void)
 {
 	int id_volt = 0;
 	int id = 0;
-	int ret = 0;
-
-	ret = IMM_GetOneChannelValue_Cali(BATTERY_ID_CHANNEL_NUM, &id_volt);
-	if (ret != 0)
+	//int ret = 0;
+	/*add begin by sunxiaogang@yulong.com 2015.05.27 to add battery id in factory mode*/
+	unsigned char buf[50] = {0};
+	/*add end by sunxiaogang@yulong.com*/
+//	ret = IMM_GetOneChannelValue_Cali(BATTERY_ID_CHANNEL_NUM, &id_volt);
+	id_volt = PMIC_IMM_GetOneChannelValue(MT6328_AUX_TSX,5,1);      //huangqingjun add for multi battery
+	//id_volt = PMIC_IMM_GetOneChannelValue(BATTERY_ID_CHANNEL_NUM,5,1);
+//	if(ret != 0)
+	if(id_volt == 0)
 		bm_print(BM_LOG_CRTI, "[fgauge_get_profile_id]id_volt read fail\n");
 	else
 		bm_print(BM_LOG_CRTI, "[fgauge_get_profile_id]id_volt = %d\n", id_volt);
@@ -280,7 +288,21 @@ void fgauge_get_profile_id(void)
 			g_fg_battery_id = TOTAL_BATTERY_NUMBER - 1;
 		}
 	}
-
+	/*add begin by sunxiaogang@yulong.com 2015.05.27 to add battery id in factory mode*/
+	if (0 == g_fg_battery_id)
+	{
+		sprintf(buf, "baterry: CPCC: %d\n",id_volt);
+	} else if (1 == g_fg_battery_id) {
+		sprintf(buf, "baterry: CPVK: %d\n",id_volt);
+	} else if(2 == g_fg_battery_id) {
+		sprintf(buf, "baterry: CPAT: %d\n",id_volt);
+	} else if(3 == g_fg_battery_id) {
+		sprintf(buf, "baterry: CPTM: %d\n",id_volt);
+	} else {
+		sprintf(buf, "baterry: UNKNOW: %d\n",id_volt);
+	}
+	get_device_info(buf);
+	/*add end by sunxiaogang@yulong.com*/
 	bm_print(BM_LOG_CRTI, "[fgauge_get_profile_id]Battery id (%d)\n", g_fg_battery_id);
 }
 #elif defined(MTK_GET_BATTERY_ID_BY_GPIO)
@@ -592,8 +614,8 @@ int __batt_meter_init_cust_data_from_dt(void)
 			battery_log(BAT_LOG_CRTI, "batt_temperature_table: addr: %d, val: %d\n",
 				    addr, val);
 		}
-		Batt_Temperature_Table[idx / 2].BatteryTemp = addr;
-		Batt_Temperature_Table[idx / 2].TemperatureR = val;
+		Batt_Temperature_Table[g_fg_battery_id][idx / 2].BatteryTemp = addr;
+		Batt_Temperature_Table[g_fg_battery_id][idx / 2].TemperatureR = val;
 
 		idx++;
 		if (idx >= num * 2)
@@ -813,39 +835,17 @@ int BattThermistorConverTemp(int Res)
 	int RES1 = 0, RES2 = 0;
 	int TBatt_Value = -200, TMP1 = 0, TMP2 = 0;
 
-	BATT_TEMPERATURE *batt_temperature_table = &Batt_Temperature_Table[g_fg_battery_id];
-#if defined(AEON_FOR_MALATA)
-	if (Res >= batt_temperature_table[0].TemperatureR) {
-		TBatt_Value = -25;
-	} else if (Res <= batt_temperature_table[18].TemperatureR) {
-		TBatt_Value = 65;
-	} else {
-		RES1 = batt_temperature_table[0].TemperatureR;
-		TMP1 = batt_temperature_table[0].BatteryTemp;
+	BATT_TEMPERATURE *batt_temperature_table = Batt_Temperature_Table[g_fg_battery_id];
 
-		for (i = 0; i <= 18; i++) {
-			if (Res < batt_temperature_table[i].TemperatureR) {
-				RES1 = batt_temperature_table[i].TemperatureR;
-				TMP1 = batt_temperature_table[i].BatteryTemp;
-			} else {
-				RES2 = batt_temperature_table[i].TemperatureR;
-				TMP2 = batt_temperature_table[i].BatteryTemp;
-				break;
-			}
-		}
-
-		TBatt_Value = (((Res - RES2) * TMP1) + ((RES1 - Res) * TMP2)) / (RES1 - RES2);
-	}
-#else
 	if (Res >= batt_temperature_table[0].TemperatureR) {
 		TBatt_Value = -20;
-	} else if (Res <= batt_temperature_table[17].TemperatureR) {
-		TBatt_Value = 65;
+	} else if (Res <= batt_temperature_table[16].TemperatureR) {
+		TBatt_Value = 60;
 	} else {
 		RES1 = batt_temperature_table[0].TemperatureR;
 		TMP1 = batt_temperature_table[0].BatteryTemp;
 
-		for (i = 0; i <= 17; i++) {
+		for (i = 0; i <= 16; i++) {
 			if (Res < batt_temperature_table[i].TemperatureR) {
 				RES1 = batt_temperature_table[i].TemperatureR;
 				TMP1 = batt_temperature_table[i].BatteryTemp;
@@ -858,7 +858,7 @@ int BattThermistorConverTemp(int Res)
 
 		TBatt_Value = (((Res - RES2) * TMP1) + ((RES1 - Res) * TMP2)) / (RES1 - RES2);
 	}
-#endif
+
 	return TBatt_Value;
 }
 
@@ -958,39 +958,16 @@ int BattThermistorConverTemp(int Res)
 	int i = 0;
 	int RES1 = 0, RES2 = 0;
 	int TBatt_Value = -200, TMP1 = 0, TMP2 = 0;
-#if defined(AEON_FOR_MALATA)
-	if (Res >= Batt_Temperature_Table[0].TemperatureR) {
-		TBatt_Value = -25;
-	} else if (Res <= Batt_Temperature_Table[18].TemperatureR) {
-		TBatt_Value = 65;
-	} else {
-		RES1 = Batt_Temperature_Table[0].TemperatureR;
-		TMP1 = Batt_Temperature_Table[0].BatteryTemp;
 
-		for (i = 0; i <= 18; i++) {
-			if (Res <  Batt_Temperature_Table[i].TemperatureR) {
-				RES1 = Batt_Temperature_Table[i].TemperatureR;
-				TMP1 = Batt_Temperature_Table[i].BatteryTemp;
-
-			} else {
-				RES2 = Batt_Temperature_Table[i].TemperatureR;
-				TMP2 = Batt_Temperature_Table[i].BatteryTemp;
-				break;
-			}
-		}
-
-		TBatt_Value = (((Res - RES2) * TMP1) + ((RES1 - Res) * TMP2)) / (RES1 - RES2);
-	}
-#else
 	if (Res >= Batt_Temperature_Table[0].TemperatureR) {
 		TBatt_Value = -20;
-	} else if (Res <= Batt_Temperature_Table[17].TemperatureR) {
-		TBatt_Value = 65;
+	} else if (Res <= Batt_Temperature_Table[16].TemperatureR) {
+		TBatt_Value = 60;
 	} else {
 		RES1 = Batt_Temperature_Table[0].TemperatureR;
 		TMP1 = Batt_Temperature_Table[0].BatteryTemp;
 
-		for (i = 0; i <= 17; i++) {
+		for (i = 0; i <= 16; i++) {
 			if (Res <  Batt_Temperature_Table[i].TemperatureR) {
 				RES1 = Batt_Temperature_Table[i].TemperatureR;
 				TMP1 = Batt_Temperature_Table[i].BatteryTemp;
@@ -1004,7 +981,7 @@ int BattThermistorConverTemp(int Res)
 
 		TBatt_Value = (((Res - RES2) * TMP1) + ((RES1 - Res) * TMP2)) / (RES1 - RES2);
 	}
-#endif
+
 	return TBatt_Value;
 }
 
@@ -1150,13 +1127,6 @@ int force_get_tbat(kal_bool update)
 		ret =
 		    battery_meter_ctrl(BATTERY_METER_CMD_GET_ADC_V_BAT_TEMP, &bat_temperature_volt);
 
-		/* sanford.lin add on 20160316 for aeon*/
-		if (bat_temperature_volt > 1700)
-		{
-			battery_log(BAT_LOG_CRTI, "[force_get_tbat] Battery is not exist, fixed TBAT=-20 t\n");
-		    return -20;
-		}
-
 		if (bat_temperature_volt != 0) {
 #if defined(SOC_BY_HW_FG)
 			fg_r_value = get_r_fg_value();
@@ -1210,50 +1180,42 @@ int fgauge_get_saddles_r_table(void)
 
 BATTERY_PROFILE_STRUCT_P fgauge_get_profile(unsigned int temperature)
 {
-	switch (temperature) {
-	case batt_meter_cust_data.temperature_t0:
+	if (temperature == batt_meter_cust_data.temperature_t0)
 		return &battery_profile_t0[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t1:
+
+	if (temperature == batt_meter_cust_data.temperature_t1)
 		return &battery_profile_t1[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t2:
+
+	if (temperature == batt_meter_cust_data.temperature_t2)
 		return &battery_profile_t2[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t3:
+
+	if (temperature == batt_meter_cust_data.temperature_t3)
 		return &battery_profile_t3[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t:
+
+	if (temperature == batt_meter_cust_data.temperature_t)
 		return &battery_profile_temperature[0];
-		/*break;*/
-	default:
-		return NULL;
-		/*break;*/
-	}
+
+	return NULL;
 }
 
 R_PROFILE_STRUCT_P fgauge_get_profile_r_table(unsigned int temperature)
 {
-	switch (temperature) {
-	case batt_meter_cust_data.temperature_t0:
+	if (temperature == batt_meter_cust_data.temperature_t0)
 		return &r_profile_t0[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t1:
+
+	if (temperature == batt_meter_cust_data.temperature_t1)
 		return &r_profile_t1[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t2:
+
+	if (temperature == batt_meter_cust_data.temperature_t2)
 		return &r_profile_t2[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t3:
+
+	if (temperature == batt_meter_cust_data.temperature_t3)
 		return &r_profile_t3[g_fg_battery_id][0];
-		/*break;*/
-	case batt_meter_cust_data.temperature_t:
+
+	if (temperature == batt_meter_cust_data.temperature_t)
 		return &r_profile_temperature[0];
-		/*break;*/
-	default:
-		return NULL;
-		/*break;*/
-	}
+
+	return NULL;
 }
 #else
 int fgauge_get_saddles(void)
@@ -2028,13 +1990,15 @@ void dod_init(void)
 
 	bm_print(BM_LOG_CRTI, "[FGADC] get_hw_ocv=%d, HW_SOC=%d, SW_SOC = %d\n",
 		 gFG_voltage, gFG_capacity_by_v, gFG_capacity_by_v_init);
-#if 0 //defined(EXTERNAL_SWCHR_SUPPORT)  //zhaolong modified on 20160115
+#if defined(EXTERNAL_SWCHR_SUPPORT)
 	/* compare with hw_ocv & sw_ocv, check if less than or equal to 5% tolerance */
 	if ((abs(gFG_capacity_by_v_init - gFG_capacity_by_v) > 5)
 	    && (bat_is_charger_exist() == KAL_TRUE)) {
 		gFG_capacity_by_v = gFG_capacity_by_v_init;
 	}
 #endif
+
+
 #if defined(HW_FG_FORCE_USE_SW_OCV)
 	gFG_capacity_by_v = gFG_capacity_by_v_init;
 	bm_print(BM_LOG_CRTI, "[FGADC] HW_FG_FORCE_USE_SW_OCV : HW_SOC=%d, SW_SOC = %d\n",
@@ -2984,7 +2948,7 @@ void fgauge_algo_run_init(void)
 		/*stop charging for vbat measurement */
 		battery_charging_control(CHARGING_CMD_ENABLE, &charging_enable);
 
-	msleep(50);
+	msleep(500);//modify by sunxiaogang@yulong.com 2014.04.22 for the battery capacity is higher when power on with charger.
 #endif
 /* 1. Get Raw Data */
 	gFG_voltage = battery_meter_get_battery_voltage(KAL_TRUE);
@@ -2998,6 +2962,7 @@ void fgauge_algo_run_init(void)
 	bm_print(BM_LOG_CRTI, "[FGADC] SWOCV : %d,%d,%d,%d,%d,%d\n",
 		 gFG_voltage_init, gFG_voltage, gFG_current, gFG_Is_Charging, gFG_resistance_bat,
 		 gFG_compensate_value);
+
 #ifdef INIT_SOC_BY_SW_SOC
 	charging_enable = KAL_TRUE;
 	battery_charging_control(CHARGING_CMD_ENABLE, &charging_enable);

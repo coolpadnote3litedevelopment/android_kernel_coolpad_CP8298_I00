@@ -166,6 +166,22 @@ config TABLET_PROJECT
 	help
 	  Is Tablet Project or not
 
+#yulong add feature for different battery capacity 20160223
+config YULONG_BATTERY_2500MA
+        bool "YuLong battery support"
+        default n
+        help
+           macro for projects with battery capacity
+#yulong end
+
+#yulong add feature for different battery capacity 20160223
+config YULONG_BATTERY_3000MA
+        bool "YuLong battery support"
+        default n
+        help
+           macro for projects with battery capacity
+#yulong end
+
 source "drivers/misc/mediatek/gpt/Kconfig"
 source "drivers/misc/mediatek/uart/Kconfig"
 source "drivers/misc/mediatek/irtx/Kconfig"

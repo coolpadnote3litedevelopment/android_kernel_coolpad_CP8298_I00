@@ -14,15 +14,6 @@ config MTK_BQ25896_SUPPORT
 	Set y to support this driver.
 	Set n and choose other chargers.
 	This driver uses I2c bus.
-	
-config MTK_BQ24158_SUPPORT
-	bool "MTK_BQ24158_SUPPORT"
-	default n
-	---help---
-	Mediatek TI BQ25896 driver.
-	Set y to support this driver.
-	Set n and choose other chargers.
-	This driver uses I2c bus.	
 
 config MTK_SWITCH_INPUT_OUTPUT_CURRENT_SUPPORT
 	bool "MTK_SWITCH_INPUT_OUTPUT_CURRENT_SUPPORT"

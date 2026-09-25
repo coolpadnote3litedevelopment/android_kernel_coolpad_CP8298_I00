@@ -127,7 +127,9 @@ static DEFINE_MUTEX(pmic_lock_mutex);
 #else
 #define CONFIG_PMIC_HW_ACCESS_EN
 #endif
-
+/*yulong add for open pmic log 20160127*/
+#define PMIC_DEBUG_PR_DBG
+/*yulong end*/
 #define PMICTAG                "[PMIC] "
 #if defined PMIC_DEBUG_PR_DBG
 #define PMICLOG(fmt, arg...)   pr_err(PMICTAG fmt, ##arg)
@@ -3834,7 +3836,7 @@ void PMIC_INIT_SETTING_V1(void)
 		ret = pmic_config_interface(0xEA6, 0x1, 0x3, 4);
 		ret = pmic_config_interface(0xEA6, 0x1, 0x3, 6);
 		ret = pmic_config_interface(0xEB8, 0x1, 0x1, 14);
-		ret = pmic_config_interface(0xF4A, 0xF, 0xF, 4);
+		ret = pmic_config_interface(0xF4A, 0xB, 0xF, 4);
 		ret = pmic_config_interface(0xF54, 0x0, 0x7, 1);
 		ret = pmic_config_interface(0xF62, 0x3, 0xF, 0);
 		ret = pmic_config_interface(0xF6C, 0x2, 0x1F, 0);
@@ -3976,7 +3978,7 @@ void PMIC_INIT_SETTING_V1(void)
 		ret = pmic_config_interface(0xF12, 0x0, 0x1, 0);
 		ret = pmic_config_interface(0xF12, 0x0, 0x1, 1);
 		ret = pmic_config_interface(0xF12, 0x1, 0x1, 2);
-		ret = pmic_config_interface(0xF4A, 0xF, 0xF, 4);
+		ret = pmic_config_interface(0xF4A, 0xB, 0xF, 4);
 		ret = pmic_config_interface(0xF54, 0x0, 0x7, 1);
 		ret = pmic_config_interface(0xF62, 0x3, 0xF, 0);
 		ret = pmic_config_interface(0xF6C, 0x2, 0x1F, 0);
@@ -4003,6 +4005,9 @@ void PMIC_INIT_SETTING_V1(void)
 	ret = pmic_config_interface(0x648, 0x0, 0x3, 0); /* [1:0]: VSYS slow slew rate  */
 	ret = pmic_config_interface(0x64A, 0x0, 0x3, 0); /* [1:0]: VSYS slow slew rate  */
 #endif
+	/*modify by fubin1@yulong.com at 20160301 to set vrf18_0 to 1825+80mV for rf start.*/
+	pmic_set_register_value(PMIC_RG_VRF18_0_CAL,12);// add 80mv
+	/*modify by fubin1@yulong.com at 20160301 to set vrf18_0 to 1825+80mV for rf start.*/
 }
 
 #if defined CONFIG_MTK_LEGACY

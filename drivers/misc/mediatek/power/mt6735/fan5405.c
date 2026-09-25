@@ -10,7 +10,15 @@
 #include <linux/of_address.h>
 #endif
 #include <mt-plat/charging.h>
+#include <linux/power_supply.h>
 #include "fan5405.h"
+
+/**** additional sysfs entries for power supply interface by cuixuanke@yulong.com at 20160504 ****/
+struct fan5405_device {
+    struct device *dev;
+    struct power_supply charger;
+};
+
 
 #define fan5405_SLAVE_ADDR_WRITE   0xD4
 #define fan5405_SLAVE_ADDR_READ    0xD5
@@ -545,17 +553,83 @@ void fan5405_dump_register(void)
 	battery_log(BAT_LOG_FULL, "\n");
 }
 
+/**** additional sysfs entries for power supply interface by cuixuanke@yulong.com at 20160504 ****/
+
+static enum power_supply_property fan5405x_power_supply_props[] = {
+    /* TODO: maybe add more power supply properties */
+    POWER_SUPPLY_PROP_VENDOR
+};
+static int fan5405x_power_supply_get_property(struct power_supply *psy,
+                         enum power_supply_property psp,
+                         union power_supply_propval *val)
+{
+    /*struct fan5405_device *bq = container_of(psy, struct fan5405_device,
+                                charger);*/
+    switch (psp) {
+    case POWER_SUPPLY_PROP_VENDOR:
+        val->strval = "fan5405";
+        break;
+    default:
+        return -EINVAL;
+    }
+    return 0;
+}
+static int fan5405_power_supply_init(struct fan5405_device *bq)
+{
+    int ret;
+    //int chip;
+    //char revstr[8];
+    char *name = "usb-parallel";
+    bq->charger.name = name;
+    bq->charger.type = POWER_SUPPLY_TYPE_USB;
+    bq->charger.properties = fan5405x_power_supply_props;
+    bq->charger.num_properties = ARRAY_SIZE(fan5405x_power_supply_props);
+    bq->charger.get_property = fan5405x_power_supply_get_property;
+    ret = power_supply_register(bq->dev, &bq->charger);
+    if (ret) {
+        return ret;
+    }
+    return 0;
+}
+static void fan5405_power_supply_exit(struct fan5405_device *bq)
+{
+    power_supply_unregister(&bq->charger);
+}
+/**** additional sysfs entries for power supply interface ****/
+
 static int fan5405_driver_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
-	new_client = client;
+      int err=0;
+      struct fan5405_device *fan5405_dev = NULL;
 
-	fan5405_hw_component_detect();
-	fan5405_dump_register();
-	chargin_hw_init_done = KAL_TRUE;
+       battery_log(BAT_LOG_CRTI,"[fan5405_driver_probe] \n");
 
-	return 0;
+       if (!(fan5405_dev = devm_kzalloc(&client->dev,sizeof(struct fan5405_device), GFP_KERNEL))) {
+            err = -ENOMEM;
+            goto exit;
+        }
+        fan5405_dev->dev = &client->dev;
+    err = fan5405_power_supply_init(fan5405_dev);
+    if (err) {
+       dev_err(fan5405_dev->dev, "failed to register power supply: %d\n", err);
+       goto exit_supply;
+    }
+
+    //i2c_set_clientdata(client, fan5405_dev);
+    new_client = client;
+
+    fan5405_hw_component_detect();
+    fan5405_dump_register();
+    chargin_hw_init_done = KAL_TRUE;
+    return 0;
+
+exit_supply:
+    fan5405_power_supply_exit(fan5405_dev);
+exit:
+    return err;
 }
 
+/**** additional sysfs entries for power supply interface by cuixuanke@yulong.com at 20160504****/
 /**********************************************************
   *
   *   [platform_driver API]
@@ -632,9 +706,13 @@ static struct platform_driver fan5405_user_space_driver = {
 	},
 };
 
+static struct i2c_board_info __initdata i2c_fan5405 = { I2C_BOARD_INFO("fan5405", (fan5405_SLAVE_ADDR_WRITE>>1))};
+
 static int __init fan5405_init(void)
 {
 	int ret = 0;
+
+	i2c_register_board_info(FAN5405_BUSNUM, &i2c_fan5405, 1);
 
 	if (i2c_add_driver(&fan5405_driver) != 0) {
 		battery_log(BAT_LOG_CRTI,

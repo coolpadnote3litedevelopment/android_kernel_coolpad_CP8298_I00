@@ -137,10 +137,15 @@ static u32 charging_hw_init(void *data)
 	mt_set_gpio_mode(wireless_charger_gpio_number, 0);	/* 0:GPIO mode */
 	mt_set_gpio_dir(wireless_charger_gpio_number, 0);	/* 0: input, 1: output */
 #endif
+	/*yulong add for high voltage battery support 20160314*/
+#if defined(HIGH_BATTERY_VOLTAGE_SUPPORT)
+	fan5405_reg_config_interface(0x06,0x77); // ISAFE = 1250mA, VSAFE = 4.34V
+#else
 
 	fan5405_reg_config_interface(0x06, 0x70);
-
-	fan5405_reg_config_interface(0x00, 0xC0);	/* kick chip watch dog */
+#endif
+	fan5405_reg_config_interface(0x00, 0x80);	/* disable STAT connected with LED_STAT, huyue 2016/4/6 */
+	//fan5405_reg_config_interface(0x00, 0xC0);	/* kick chip watch dog */
 	fan5405_reg_config_interface(0x01, 0xb8);	/* TE=1, CE=0, HZ_MODE=0, OPA_MODE=0 */
 	fan5405_reg_config_interface(0x05, 0x03);
 	if (!charging_init_flag) {
@@ -315,7 +320,7 @@ static u32 charging_get_battery_status(void *data)
 {
 	unsigned int status = STATUS_OK;
 
-#if 1 //defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
+#if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 	*(kal_bool *) (data) = 0;	/* battery exist */
 	battery_log(BAT_LOG_CRTI, "[charging_get_battery_status] battery exist for bring up.\n");
 #else

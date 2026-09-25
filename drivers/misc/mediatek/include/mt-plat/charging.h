@@ -124,6 +124,15 @@ typedef enum {
 	WIRELESS_CHARGER,
 } CHARGER_TYPE;
 
+/*add begin by sunxiaogang@yulong.com 2015.05.11 for battery type detect*/
+typedef enum {
+	FACTORY_UNKNOWN = 0,
+	FACTORY_CPCC,
+	FACTORY_CPTM,
+	FACTORY_CPVK,
+	FACTORY_CPAT,
+} BATTERY_TYPE;
+/*add end by sunxiaogang@yulong.com*/
 
 /* Enum of Voltage List */
 typedef enum {

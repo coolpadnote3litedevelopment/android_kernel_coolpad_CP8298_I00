@@ -189,12 +189,13 @@ static unsigned int charging_hw_init(void *data)
 #endif
 
 	bq24296_set_en_hiz(0x0);
-	bq24296_set_vindpm(0xA);	/* VIN DPM check 4.68V */
+	//modify by sunxiaogang@yulong.com for charger voltage test fail
+	bq24296_set_vindpm(0x6); //VIN DPM check 4.68V
 	bq24296_set_reg_rst(0x0);
-	bq24296_set_wdt_rst(0x1);	/* Kick watchdog */
-	bq24296_set_sys_min(0x5);	/* Minimum system voltage 3.5V */
-	bq24296_set_iprechg(0x3);	/* Precharge current 512mA */
-	bq24296_set_iterm(0x0);	/* Termination current 128mA */
+	bq24296_set_wdt_rst(0x1); //Kick watchdog
+	bq24296_set_sys_min(0x5); //Minimum system voltage 3.5V
+	bq24296_set_iprechg(0x1); //Precharge current 512mA
+	bq24296_set_iterm(0x0); //Termination current 128mA
 
 	if (batt_cust_data.high_battery_voltage_support)
 		bq24296_set_vreg(0x35);	/* VREG 4.352V */
@@ -271,8 +272,10 @@ static unsigned int charging_set_cv_voltage(void *data)
 	static short pre_register_value = -1;
 
 	if (batt_cust_data.high_battery_voltage_support) {
-		if (cv_value >= BATTERY_VOLT_04_300000_V)
-			cv_value = 4304000;
+		/*modify begin by sunxiaogang@yulong.com 2015.04.23 to increase the battery full voltage*/
+		if(cv_value >= BATTERY_VOLT_04_350000_V)
+			cv_value = 4368000;
+		/*modify end by sunxiaogang@yulong.com*/
 	}
 
 	/* use nearest value */

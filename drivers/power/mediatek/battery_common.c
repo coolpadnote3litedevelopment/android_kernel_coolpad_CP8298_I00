@@ -146,6 +146,7 @@ kal_bool skip_battery_update = KAL_FALSE;
 
 unsigned int g_batt_temp_status = TEMP_POS_NORMAL;
 
+extern unsigned int g_fg_battery_id;  //add by sunxiaogang@yulong.com 2015.05.11 for battery type detect
 
 kal_bool battery_suspended = KAL_FALSE;
 /*#ifdef MTK_ENABLE_AGING_ALGORITHM
@@ -177,6 +178,8 @@ struct battery_custom_data batt_cust_data;
 #define Get_META_BAT_VOL _IOW('k', 10, int)
 #define Get_META_BAT_SOC _IOW('k', 11, int)
 /* add for meta tool----------------------------------------- */
+//huangqingjun add
+#define RECOVERY_CHARGING_VOLTAGE 6500
 
 static struct class *adc_cali_class;
 static int adc_cali_major;
@@ -275,6 +278,8 @@ struct battery_data {
 	int capacity_smb;
 	int present_smb;
 	int adjust_power;
+	int BAT_Charger_Type;   //add by sunxiaogang@yulong.com 2015.03.24 for charger type detect
+	int BAT_Factory_Type;   //add by sunxiaogang@yulong.com 2015.05.11 for battery type detect
 };
 
 static enum power_supply_property wireless_props[] = {
@@ -312,6 +317,8 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_present_smb,
 	/* ADB CMD Discharging */
 	POWER_SUPPLY_PROP_adjust_power,
+	POWER_SUPPLY_PROP_Charger_Type, //add by sunxiaogang@yulong.com 2015.03.24 for charger type detect
+	POWER_SUPPLY_PROP_Battery_Type, //add by sunxiaogang@yulong.com 2015.05.11 for battery type detect
 };
 
 /*void check_battery_exist(void);*/
@@ -631,7 +638,18 @@ static int battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_adjust_power:
 		val->intval = data->adjust_power;
 		break;
-
+	/*add begin by sunxiaogang@yulong.com 2015.03.24 for charger type detect*/
+	case POWER_SUPPLY_PROP_Charger_Type :
+		val->intval = data->BAT_Charger_Type;
+		battery_xlog_printk(BAT_LOG_CRTI, "[sunxiaogang] charger_type = %d\n",val->intval);
+		break;
+	/*add end by sunxiaogang@yulong.com*/
+	/*add begin by sunxiaogang@yulong.com 2015.05.11 for battery type detect*/
+	case POWER_SUPPLY_PROP_Battery_Type :
+		val->intval = data->BAT_Factory_Type;
+		battery_xlog_printk(BAT_LOG_CRTI, "[sunxiaogang] battery_type = %d\n",val->intval);
+		break;
+	/*add end by sunxiaogang@yulong.com*/
 	default:
 		ret = -EINVAL;
 		break;
@@ -700,6 +718,8 @@ static struct battery_data battery_main = {
 	.present_smb = 0,
 	/* ADB CMD discharging */
 	.adjust_power = -1,
+	.BAT_Charger_Type = STANDARD_CHARGER,   //add by sunxiaogang@yulong.com 2015.03.24 for charger type detect
+	.BAT_Factory_Type = FACTORY_CPCC,   //add by sunxiaogang@yulong.com 2015.05.11 for battery type detect
 #else
 	.BAT_STATUS = POWER_SUPPLY_STATUS_NOT_CHARGING,
 	.BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD,
@@ -718,6 +738,8 @@ static struct battery_data battery_main = {
 	.present_smb = 0,
 	/* ADB CMD discharging */
 	.adjust_power = -1,
+	.BAT_Charger_Type = STANDARD_CHARGER,   //add by sunxiaogang@yulong.com 2015.03.24 for charger type detect
+	.BAT_Factory_Type = FACTORY_CPCC,   //add by sunxiaogang@yulong.com 2015.05.11 for battert type detect
 #endif
 };
 
@@ -1735,7 +1757,7 @@ static kal_bool mt_battery_100Percent_tracking_check(void)
 	return resetBatteryMeter;
 }
 
-
+#if 0
 static kal_bool mt_battery_nPercent_tracking_check(void)
 {
 	kal_bool resetBatteryMeter = KAL_FALSE;
@@ -1787,23 +1809,55 @@ static kal_bool mt_battery_nPercent_tracking_check(void)
 	return resetBatteryMeter;
 
 }
+#endif
 
 static kal_bool mt_battery_0Percent_tracking_check(void)
 {
 	kal_bool resetBatteryMeter = KAL_TRUE;
-
-	if (BMT_status.UI_SOC <= 0) {
-		BMT_status.UI_SOC = 0;
-	} else {
-		if (BMT_status.bat_vol > SYSTEM_OFF_VOLTAGE && BMT_status.UI_SOC > 1)
-			BMT_status.UI_SOC--;
-		else if (BMT_status.bat_vol <= SYSTEM_OFF_VOLTAGE)
-			BMT_status.UI_SOC--;
-
+//begin TFS_258277 modify by sunxiaogang@yulong.com to optimize low power and full capacity battery curve 2015-06-25
+	static unsigned int timer_counter = 0;
+	unsigned int NUM_COUNT = 0;
+	if(BMT_status.bat_vol > 3400)
+	{
+		NUM_COUNT = V_0PERCENT_TRACKING_TIME/BAT_TASK_PERIOD;
 	}
-
-	battery_log(BAT_LOG_CRTI, "0Percent, VBAT < %d UI_SOC=%d\r\n", SYSTEM_OFF_VOLTAGE,
-		    BMT_status.UI_SOC);
+	else if(BMT_status.bat_vol > 3350)
+	{
+		NUM_COUNT = (V_0PERCENT_TRACKING_TIME-20)/BAT_TASK_PERIOD;
+	}
+	else
+	{
+		NUM_COUNT = (V_0PERCENT_TRACKING_TIME-40)/BAT_TASK_PERIOD;
+	}
+	if(BMT_status.UI_SOC <= 0)
+	{
+		BMT_status.UI_SOC=0;
+	} else {
+		if (BMT_status.bat_vol > SYSTEM_OFF_VOLTAGE && BMT_status.UI_SOC > 1) {
+			if(timer_counter >= NUM_COUNT)
+			{
+				BMT_status.UI_SOC--;
+				timer_counter = 0;
+			}
+			else
+			{
+				timer_counter ++;
+			}
+		} else if (BMT_status.bat_vol <= SYSTEM_OFF_VOLTAGE) {
+			if(timer_counter >= NUM_COUNT)
+			{
+				BMT_status.UI_SOC--;
+				timer_counter = 0;
+			}
+			else
+			{
+				timer_counter ++;
+			}
+		}
+	}
+	battery_log(BAT_LOG_CRTI, "0Percent, VBAT = %d UI_SOC=%d,time = %d:\r\n", BMT_status.bat_vol,
+                BMT_status.UI_SOC,timer_counter);
+//end TFS_258277 modify by sunxiaogang@yulong.com to optimize low power and full capacity battery curve 2015-06-25
 
 	return resetBatteryMeter;
 }
@@ -1874,6 +1928,29 @@ static void battery_update(struct battery_data *bat_data)
 	bat_data->BAT_batt_vol = BMT_status.bat_vol * 1000;
 	bat_data->BAT_batt_temp = BMT_status.temperature * 10;
 	bat_data->BAT_PRESENT = BMT_status.bat_exist;
+	//bat_data->BAT_Factory_Type = g_fg_battery_id;
+	/*add begin by sunxiaogang@yulong.com 2015.05.11 for battery type detect*/
+	switch (g_fg_battery_id)
+	{
+		case 0: bat_data->BAT_Factory_Type = FACTORY_CPCC;  break;
+		case 1: bat_data->BAT_Factory_Type = FACTORY_CPVK;  break;
+		case 2: bat_data->BAT_Factory_Type = FACTORY_CPAT;  break;
+		case 3: bat_data->BAT_Factory_Type = FACTORY_CPTM;  break;
+		default: bat_data->BAT_Factory_Type = FACTORY_UNKNOWN;  break;
+	}
+	/*add end by sunxiaogang@yulong.com*/
+
+	/*add begin by sunxiaogang@yulong.com 2015.03.24 for charger type detect*/
+	if ((BMT_status.charger_exist == KAL_TRUE)&&(BMT_status.bat_charging_state == CHR_CC)&&
+		(BMT_status.UI_SOC <= 80)&&(BMT_status.ICharging <= 800))
+	{
+		bat_data->BAT_Charger_Type = NONSTANDARD_CHARGER;
+	} else {
+		bat_data->BAT_Charger_Type = STANDARD_CHARGER;
+	}
+	battery_xlog_printk(BAT_LOG_CRTI, "[sunxiaogang] charging_state = %d,Icharging = %d,charger_type = %d\n",
+			BMT_status.bat_charging_state,BMT_status.ICharging,bat_data->BAT_Charger_Type);
+	/*add end by sunxiaogang@yulong.com*/
 
 	if ((BMT_status.charger_exist == KAL_TRUE) && (BMT_status.bat_charging_state != CHR_ERROR)) {
 		if (BMT_status.bat_exist) {	/* charging */
@@ -1896,19 +1973,32 @@ static void battery_update(struct battery_data *bat_data)
 		if (BMT_status.bat_vol <= batt_cust_data.v_0percent_tracking)
 			resetBatteryMeter = mt_battery_0Percent_tracking_check();
 		else
-			resetBatteryMeter = mt_battery_nPercent_tracking_check();
+			//resetBatteryMeter = mt_battery_nPercent_tracking_check();
+			resetBatteryMeter = KAL_FALSE; //TFS_193258 modifed by zhaoyoufei@yulong.com to remove tracking function 2015-01-27
 	}
 
 	if (resetBatteryMeter == KAL_TRUE) {
 		battery_meter_reset();
 	} else {
-		if (BMT_status.bat_full == KAL_TRUE && is_uisoc_ever_100 == KAL_TRUE) {
+		/*if (BMT_status.bat_full == KAL_TRUE && is_uisoc_ever_100 == KAL_TRUE) {*/
+		/*modify begin by sunxiaogang@yulong.com 2015.05.14 for battery capacity keep 100% after charge full
+               and never decrease even the battery voltage goes down*/
+               #if defined(CONFIG_YULONG_BQ24296_SUPPORT)
+               mt_battery_Sync_UI_Percentage_to_Real();
+               if(BMT_status.UI_SOC < 100)
+               {
+                      BMT_status.bat_full = KAL_FALSE;
+               }
+               #else
+               if (bat_is_recharging_phase() == KAL_TRUE) {
 			BMT_status.UI_SOC = 100;
 			battery_log(BAT_LOG_CRTI, "[recharging] UI_SOC=%d, SOC=%d\n",
 				    BMT_status.UI_SOC, BMT_status.SOC);
 		} else {
 			mt_battery_Sync_UI_Percentage_to_Real();
 		}
+		#endif
+               /*modify end by sunxiaogang@yulong.com 2015.05.14*/
 	}
 
 	battery_log(BAT_LOG_CRTI, "UI_SOC=(%d), resetBatteryMeter=(%d)\n",
@@ -2424,6 +2514,8 @@ static PMU_STATUS mt_battery_CheckBatteryTemp(void)
 static PMU_STATUS mt_battery_CheckChargerVoltage(void)
 {
 	PMU_STATUS status = PMU_STATUS_OK;
+	static bool low_vol_record=false;  //huangqingjun add for recovery
+
 #if defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
 	unsigned int v_charger_max = DISO_data.hv_voltage;
 #endif
@@ -2435,30 +2527,38 @@ static PMU_STATUS mt_battery_CheckChargerVoltage(void)
 				battery_log(BAT_LOG_CRTI, "[BATTERY]Charger under voltage!!\r\n");
 				BMT_status.bat_charging_state = CHR_ERROR;
 				status = PMU_STATUS_FAIL;
+				low_vol_record=true;   //huangqingjun add flag
 			}
-		}
-#if !defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
-		if (BMT_status.charger_vol >= batt_cust_data.v_charger_max) {
-#else
-		if (BMT_status.charger_vol >= v_charger_max) {
-#endif
-			battery_log(BAT_LOG_CRTI, "[BATTERY]Charger over voltage !!\r\n");
-			BMT_status.charger_protect_status = charger_OVER_VOL;
-			BMT_status.bat_charging_state = CHR_ERROR;
-			status = PMU_STATUS_FAIL;
-		}
+//begin TFS_158881 add by zhaoyoufei@yulong.com  for recovery charging after under or over voltage 2014-12-18
+			if ((low_vol_record==true) && (BMT_status.charger_vol>=V_CHARGER_MIN)) {
+				battery_log(BAT_LOG_CRTI,  "[BATTERY] recovery charging afer under voltage !! \r\n");
+				BMT_status.charger_protect_status = 0;
+				BMT_status.bat_charging_state = CHR_PRE;
+				status = PMU_STATUS_OK;
+				low_vol_record=false;
+			}
+//end TFS_158881 add by zhaoyoufei@yulong.com  for recovery charging after under or over voltage 2014-12-18
 
-	/* sanford.lin 20160307 add start for recovery changing*/
-	#ifdef MTK_VOLTAGE_RECHARGE_SUPPORT
-		if((BMT_status.charger_protect_status == charger_OVER_VOL) && (BMT_status.charger_vol <= RECOVERY_CHARGING_VOLTAGE))
-		{
-			battery_xlog_printk(BAT_LOG_CRTI, "[BATTERY] recovery charging afer over voltage !! \r\n");
-			BMT_status.charger_protect_status = 0;
-			BMT_status.bat_charging_state = CHR_PRE;
-			status = PMU_STATUS_OK;
+#if !defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
+			if (BMT_status.charger_vol >= batt_cust_data.v_charger_max) {
+#else
+			if (BMT_status.charger_vol >= v_charger_max) {
+#endif
+				battery_log(BAT_LOG_CRTI, "[BATTERY]Charger over voltage !!\r\n");
+				BMT_status.charger_protect_status = charger_OVER_VOL;
+				BMT_status.bat_charging_state = CHR_ERROR;
+				status = PMU_STATUS_FAIL;
+			}
+//begin TFS_158881 add by zhaoyoufei@yulong.com  for recovery charging after under or over voltage 2014-12-18
+			if(( BMT_status.charger_protect_status==charger_OVER_VOL)&&(BMT_status.charger_vol<=RECOVERY_CHARGING_VOLTAGE))
+			{
+				battery_xlog_printk(BAT_LOG_CRTI,  "[BATTERY] recovery charging afer over voltage !! \r\n");
+				BMT_status.charger_protect_status = 0;
+				BMT_status.bat_charging_state = CHR_PRE;
+				status = PMU_STATUS_OK;
+			}
+//end TFS_158881 add by zhaoyoufei@yulong.com  for recovery charging after under or over voltage 2014-12-18
 		}
-	#endif
-	/* sanford.lin 20160307 add end*/
 	}
 
 	return status;
@@ -2602,10 +2702,6 @@ static void mt_battery_notify_ICharging_check(void)
 
 static void mt_battery_notify_VBatTemp_check(void)
 {
-#if defined(AEON_FOR_MALATA)
-	if (BMT_status.charger_exist == KAL_TRUE)
-	{
-#endif
 #if defined(BATTERY_NOTIFY_CASE_0002_VBATTEMP)
 
 	if (BMT_status.temperature >= batt_cust_data.max_charge_temperature) {
@@ -2627,19 +2723,6 @@ static void mt_battery_notify_VBatTemp_check(void)
 			    BMT_status.temperature);
 	}
 #endif
-#endif
-#if defined(AEON_FOR_MALATA)
-	}
-	if (BMT_status.temperature >= 60) {
-		g_BatteryNotifyCode |= 0x0040;
-		battery_log(BAT_LOG_CRTI, "[BATTERY] malata_bat_temp(%d) out of range(too high)\n",
-					BMT_status.temperature);
-	}
-	else if (BMT_status.temperature <= -20) {
-		g_BatteryNotifyCode |= 0x0080;
-		battery_log(BAT_LOG_CRTI, "[BATTERY] bat_temp(%d) out of range(too low)\n",
-					BMT_status.temperature);
-	}
 #endif
 
 	battery_log(BAT_LOG_FULL, "[BATTERY] BATTERY_NOTIFY_CASE_0002_VBATTEMP (%x)\n",
@@ -2735,11 +2818,7 @@ static void mt_battery_thermal_check(void)
 #if defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 		/* ignore default rule */
 #else
-	#if defined(AEON_FOR_MALATA)
-		if ((BMT_status.temperature <= -25) || (BMT_status.temperature >= 65)) {
-	#else
-		if (BMT_status.temperature >= 65) {
-	#endif
+		if (BMT_status.temperature >= 60) {
 #if defined(CONFIG_POWER_EXT)
 			battery_log(BAT_LOG_CRTI,
 				    "[BATTERY] CONFIG_POWER_EXT, no update battery update power down.\n");
@@ -2747,12 +2826,7 @@ static void mt_battery_thermal_check(void)
 			{
 				if ((g_platform_boot_mode == META_BOOT)
 				    || (g_platform_boot_mode == ADVMETA_BOOT)
-				    || (g_platform_boot_mode == ATE_FACTORY_BOOT)
-                                    || (g_platform_boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT) 
-				#if defined(AEON_FOR_MALATA)
-					|| (g_platform_boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT)
-				#endif
-				){
+				    || (g_platform_boot_mode == ATE_FACTORY_BOOT)) {
 					battery_log(BAT_LOG_FULL,
 						    "[BATTERY] boot mode = %d, bypass temperature check\n",
 						    g_platform_boot_mode);
@@ -2770,8 +2844,8 @@ static void mt_battery_thermal_check(void)
 
 					if (BMT_status.charger_exist == KAL_TRUE) {
 						/* can not power down due to charger exist, so need reset system */
-						//battery_charging_control
-						//    (CHARGING_CMD_SET_PLATFORM_RESET, NULL);
+						battery_charging_control
+						    (CHARGING_CMD_SET_PLATFORM_RESET, NULL);
 					}
 					/* avoid SW no feedback */
 					battery_charging_control(CHARGING_CMD_SET_POWER_OFF, NULL);
@@ -3570,7 +3644,7 @@ void hv_sw_mode(void)
 int charger_hv_detect_sw_thread_handler(void *unused)
 {
 	ktime_t ktime;
-	unsigned int hv_voltage = 10500*1000;  //sanford.lin batt_cust_data.v_charger_max * 1000;
+	unsigned int hv_voltage = batt_cust_data.v_charger_max * 1000;
 
 
 	unsigned char cnt = 0;
@@ -3627,7 +3701,7 @@ int charger_hv_detect_sw_thread_handler(void *unused)
 {
 	ktime_t ktime;
 	unsigned int charging_enable;
-	unsigned int hv_voltage = 10500*1000;  //sanford.lin batt_cust_data.v_charger_max * 1000;
+	unsigned int hv_voltage = batt_cust_data.v_charger_max * 1000;
 	kal_bool hv_status;
 
 #if defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)

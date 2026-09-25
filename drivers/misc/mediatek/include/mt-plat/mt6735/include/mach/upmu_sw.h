@@ -2,7 +2,7 @@
 #define _MT_PMIC_UPMU_SW_H_
 
 #define AUXADC_SUPPORT_IMM_CURRENT_MODE
-//#define BATTERY_DTS_SUPPORT  //sanford.lin
+//#define BATTERY_DTS_SUPPORT //yulong delete for disable read cust data from dts 20160127
 
 #define BATTERY_CDP_WORKAROUND
 

@@ -20,6 +20,11 @@
 #define bq24296_SLAVE_ADDR_WRITE   0xD6
 #define bq24296_SLAVE_ADDR_READ    0xD7
 
+#ifdef I2C_SWITHING_CHARGER_CHANNEL
+#define bq24296_BUSNUM I2C_SWITHING_CHARGER_CHANNEL
+#else
+#define bq24296_BUSNUM 2    //add by sunxiaogang@yulong.com 2015.04.01 for bq24296 i2c error
+#endif
 static struct i2c_client *new_client;
 static const struct i2c_device_id bq24296_i2c_id[] = { {"bq24296", 0}, {} };
 
@@ -686,10 +691,15 @@ static struct platform_driver bq24296_user_space_driver = {
 		   },
 };
 
+//add by sunxiaogang@yulong.com 2015.04.01 for bq24296 i2c error
+static struct i2c_board_info __initdata i2c_bq24296 = { I2C_BOARD_INFO("bq24296", (bq24296_SLAVE_ADDR_WRITE>>1))};
 static int __init bq24296_subsys_init(void)
 {
 	int ret = 0;
 
+	//add by sunxiaogang@yulong.com 2015.04.01 for bq24296 i2c error
+	i2c_register_board_info(bq24296_BUSNUM, &i2c_bq24296, 1);
+	battery_log(BAT_LOG_CRTI, "[bq24296_init] init start. ch=%d\n", bq24296_BUSNUM);
 	if (i2c_add_driver(&bq24296_driver) != 0)
 		battery_log(BAT_LOG_CRTI, "[bq24261_init] failed to register bq24261 i2c driver.\n");
 	else

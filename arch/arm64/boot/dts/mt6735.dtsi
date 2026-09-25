@@ -2165,10 +2165,10 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 			    98 3575
 			    98 3537
 			    99 3502
-			    99 3400
-			    100 3390
-			    100 3385
-			    100 3380
+			    99 3472
+			    100 3443
+			    100 3419
+			    100 3395
 			    100 3373
 			    100 3357
 			    100 3341
@@ -2262,8 +2262,8 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 			    96 3662
 			    97 3601
 			    99 3533
-			    99 3395
-			    100 3390
+			    99 3475
+			    100 3418
 			    100 3363
 			    100 3315
 			    100 3270
@@ -2367,7 +2367,7 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 			    95 3684
 			    97 3651
 			    98 3587
-			    99 3390
+			    99 3498
 			    100 3347
 			    100 3207
 			    100 3164
@@ -2463,8 +2463,8 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 			    94 3676
 			    96 3664
 			    97 3619
-			    98 3395
-			    100 3390
+			    98 3553
+			    100 3454
 			    100 3279
 			    100 3141
 			    100 3081
@@ -2882,10 +2882,10 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 
 			/* Battery Temperature Protection */
 			mtk_temperature_recharge_support = <1 >;
-			max_charge_temperature = <55 >;
+			max_charge_temperature = <50 >;
 			max_charge_temperature_minus_x_degree = <47 >;
-			min_charge_temperature = <(-15) >;
-			min_charge_temperature_plus_x_degree = <0 >;
+			min_charge_temperature = <0 >;
+			min_charge_temperature_plus_x_degree = <6 >;
 			err_charge_temperature = <0xff >;
 
 			/* Linear Charging Threshold */
@@ -2920,7 +2920,7 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 			v_0percent_tracking = <3450 >;	/* Unit: mV */
 
 			/* High battery support */
-			high_battery_voltage_support = <1 >;
+			high_battery_voltage_support = <0 >;
 		};
 		dsi_te: dsi_te {
 			compatible = "mediatek, dsi_te_1-eint";

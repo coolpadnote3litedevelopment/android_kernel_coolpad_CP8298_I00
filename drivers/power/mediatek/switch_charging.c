@@ -38,7 +38,6 @@
 #include <mt-plat/charging.h>
 #include <mach/mt_charging.h>
 #include <mt-plat/mt_boot.h>
-#include <linux/delay.h>
 
 #if defined(CONFIG_MTK_PUMP_EXPRESS_PLUS_SUPPORT)
 #include <linux/mutex.h>
@@ -59,7 +58,7 @@
 /* ============================================================ // */
 /* cut off to full */
 #define POST_CHARGING_TIME (30*60)	/* 30mins */
-#define FULL_CHECK_TIMES		10
+#define FULL_CHECK_TIMES 6
 
 /* ============================================================ // */
 /* global variable */
@@ -111,10 +110,6 @@ int g_temp_status = TEMP_POS_10_TO_POS_45;
 kal_bool temp_error_recovery_chr_flag = KAL_TRUE;
 #endif
 
-#if defined(CONFIG_MTK_BQ24158_SUPPORT)
-extern unsigned int bq24158_reg_config_interface (unsigned char RegNum, unsigned char val);
-extern int aeon_gpio_set(const char *name);
-#endif
 /* ============================================================ // */
 /* function prototype */
 /* ============================================================ // */
@@ -1044,50 +1039,33 @@ static unsigned int charging_full_check(void)
 	unsigned int status;
 
 	battery_charging_control(CHARGING_CMD_GET_CHARGING_STATUS, &status);
-
-	printk(KERN_ERR"g_full_check_count=%d,status= %d,BMT_status.bat_vol=%d\n",
-		g_full_check_count,status,BMT_status.bat_vol);
-
-	if (status == KAL_TRUE)
-	{
+	if (status == KAL_TRUE) {
 		g_full_check_count++;
 		if (g_full_check_count >= FULL_CHECK_TIMES)
-		{
-#ifdef HIGH_BATTERY_VOLTAGE_SUPPORT
-			if(BMT_status.bat_vol<4250)
-#else
-			if(BMT_status.bat_vol<4100)
-#endif
-			{
-				status = KAL_FALSE;
-				g_full_check_count = 0;
-			}
-			else
-			{
-				status = KAL_TRUE;
-			}
-//			return KAL_TRUE;
-		}
+			return KAL_TRUE;
 		else
-		{
-			status = KAL_FALSE;
-//			return KAL_FALSE;
+			return KAL_FALSE;
 	} /*else {*/
-	}
-	else
-	{
 		g_full_check_count = 0;
-	}
 		return status;
 	/*}*/
 }
 
-
+/*add by sunxiaogang@yulong.com 2015.07.20 for thermal regulation when charging*/
+#if defined(CONFIG_YULONG_BQ24296_SUPPORT)
+extern unsigned int mt_get_bl_brightness(void);
+#endif
+/*add end by sunxiaogang@yulong.com 2015.07.20*/
 static void pchr_turn_on_charging(void)
 {
 #if !defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 	BATTERY_VOLTAGE_ENUM cv_voltage;
 #endif
+	/*add by sunxiaogang@yulong.com 2015.07.20 for thermal regulation when charging*/
+	#if defined(CONFIG_YULONG_BQ24296_SUPPORT)
+	int bl_ret = 0;
+	#endif
+	/*add end by sunxiaogang@yulong.com 2015.07.20*/
 	unsigned int charging_enable = KAL_TRUE;
 
 #if defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
@@ -1116,6 +1094,11 @@ static void pchr_turn_on_charging(void)
 		battery_pump_express_algorithm_start();
 #endif
 
+		/*add by sunxiaogang@yulong.com 2015.07.20 for thermal regulation when charging*/
+		#if defined(CONFIG_YULONG_BQ24296_SUPPORT)
+		bl_ret = mt_get_bl_brightness();
+		#endif
+		/*add end by sunxiaogang@yulong.com 2015.07.20*/
 		/* Set Charging Current */
 		if (get_usb_current_unlimited()) {
 			if (batt_cust_data.ac_charger_input_current != 0)
@@ -1127,8 +1110,13 @@ static void pchr_turn_on_charging(void)
 			battery_log(BAT_LOG_FULL,
 				    "USB_CURRENT_UNLIMITED, use batt_cust_data.ac_charger_current\n");
 #ifndef CONFIG_MTK_SWITCH_INPUT_OUTPUT_CURRENT_SUPPORT
-		/*sanford add on 20150908 for aeon*/
-		} else if (g_bcct_flag == 1 && BMT_status.temperature > (batt_cust_data.max_charge_temperature-10)) {
+		/*modify by sunxiaogang@yulong.com 2015.07.20 for thermal regulation when charging*/
+		#if defined(CONFIG_YULONG_BQ24296_SUPPORT)
+		} else if ((g_bcct_flag == 1)&&(bl_ret > 0)&&(BMT_status.SOC > 15)) {
+		#else
+		} else if (g_bcct_flag == 1) {
+		#endif
+        	/*modify end by sunxiaogang@yulong.com 2015.07.20*/
 			select_charging_current_bcct();
 
 			battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_current_bcct !\n");
@@ -1138,7 +1126,13 @@ static void pchr_turn_on_charging(void)
 			battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_current !\n");
 		}
 #else
+		/*modify by sunxiaogang@yulong.com 2015.07.20 for thermal regulation when charging*/
+		#if defined(CONFIG_YULONG_BQ24296_SUPPORT)
+		} else if ((g_bcct_flag == 1 || g_bcct_input_flag == 1)&&(bl_ret > 0)&&(BMT_status.SOC > 15)) {
+		#else
 		} else if (g_bcct_flag == 1 || g_bcct_input_flag == 1) {
+		#endif
+		/*modify end by sunxiaogang@yulong.com 2015.07.20*/
 			select_charging_current();
 			select_charging_current_bcct();
 			battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_curret_bcct !\n");
@@ -1165,7 +1159,12 @@ static void pchr_turn_on_charging(void)
 			/*Set CV Voltage */
 #if !defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 			if (batt_cust_data.high_battery_voltage_support)
+			//modify by sunxiaogang@yulong.com 2015.04.23 to increase the battery full voltage
+			#if defined(CONFIG_YULONG_BQ24296_SUPPORT)
+			cv_voltage = BATTERY_VOLT_04_350000_V;
+			#else
 				cv_voltage = BATTERY_VOLT_04_340000_V;
+			#endif
 			else
 				cv_voltage = BATTERY_VOLT_04_200000_V;
 
@@ -1255,14 +1254,9 @@ PMU_STATUS BAT_BatteryFullAction(void)
 	BMT_status.POSTFULL_charging_time = 0;
 	BMT_status.bat_in_recharging_state = KAL_FALSE;
 
-	if (BMT_status.bat_vol < batt_cust_data.recharging_voltage) {   //if (charging_full_check() == KAL_FALSE) {  //sanford.lin 20151116 for recharging bug
+	if (charging_full_check() == KAL_FALSE) {
 		battery_log(BAT_LOG_CRTI, "[BATTERY] Battery Re-charging !!\n\r");
-#if defined(CONFIG_MTK_BQ24158_SUPPORT)
-	        aeon_gpio_set("aeon_chr_ce1");
-                mdelay(10);
-	        aeon_gpio_set("aeon_chr_ce0");
-                bq24158_reg_config_interface(0x01,0xf8);
-#endif
+
 		BMT_status.bat_in_recharging_state = KAL_TRUE;
 		BMT_status.bat_charging_state = CHR_CC;
 #ifndef CONFIG_MTK_HAFG_20

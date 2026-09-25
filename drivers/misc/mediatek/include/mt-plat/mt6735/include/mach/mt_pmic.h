@@ -36,11 +36,14 @@
 #define POWER_BAT_OC_CURRENT_L_RE 4000
 #endif
 
-#define DLPT_POWER_OFF_EN
+//begin removed by liuwenbo@yulong.com for suddenly power off with low battery voltage
+//#define DLPT_POWER_OFF_EN
+//end removed by liuwenbo@yulong.com for suddenly power off with low battery voltage
 #define POWEROFF_BAT_CURRENT 3000
 #define DLPT_POWER_OFF_THD 100
 
-#define BATTERY_MODULE_INIT
+//#define BATTERY_MODULE_INIT
+#define MTK_BQ24296_SUPPORT //add by liuwenbo@yulong.com 2015.05.04 to support bq24296
 
 /* ADC Channel Number */
 enum {
