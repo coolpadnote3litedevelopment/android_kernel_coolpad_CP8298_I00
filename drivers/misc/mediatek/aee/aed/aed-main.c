@@ -1925,7 +1925,7 @@ static void external_exception(const char *assert_type, const int *log, int log_
 		/* kernel vamlloc cannot be used in interrupt context */
 		LOGD("External exception occur in interrupt context, no coredump");
 		phy_size = 0;
-	} else if ((phy < 0) || (phy_size > MAX_EE_COREDUMP)) {
+	} else if ((phy == NULL) || (phy_size > MAX_EE_COREDUMP)) {
 		LOGD("EE Physical memory size(%d) too large or invalid", phy_size);
 		phy_size = 0;
 	}
