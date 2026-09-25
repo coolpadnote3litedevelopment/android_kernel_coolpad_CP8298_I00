@@ -3095,6 +3095,11 @@ static int touch_event_handler(void *unused)
                         struct device *touchscreen_dev;
                         touchscreen_dev = touchscreen_get_dev();
 
+                        input_report_key(tpd->dev, KEY_POWER, 1);
+                        input_sync(tpd->dev);
+                        input_report_key(tpd->dev, KEY_POWER, 0);
+                        input_sync(tpd->dev);
+
                         kobject_uevent_env(&touchscreen_dev->kobj, KOBJ_CHANGE, envp); //add by sunxuebin for gesture wake up
 
                         // clear 0x814B
