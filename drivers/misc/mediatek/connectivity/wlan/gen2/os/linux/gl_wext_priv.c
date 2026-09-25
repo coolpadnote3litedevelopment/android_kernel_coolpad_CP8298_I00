@@ -285,6 +285,7 @@
 #define	CMD_BAND_5G		1
 #define	CMD_BAND_2G		2
 #define	CMD_BAND_ALL	3
+#define	CMD_OID_BUF_LENGTH	4096
 
 /* Mediatek private command */
 
@@ -360,7 +361,7 @@ reqExtSetAcpiDevicePowerState(IN P_GLUE_INFO_T prGlueInfo,
 *                       P R I V A T E   D A T A
 ********************************************************************************
 */
-static UINT_8 aucOidBuf[4096] = { 0 };
+static UINT_8 aucOidBuf[CMD_OID_BUF_LENGTH] = { 0 };
 
 /* OID processing table */
 /* Order is important here because the OIDs should be in order of
@@ -1562,8 +1563,14 @@ _priv_set_ints(IN struct net_device *prNetDev,
 	switch (u4SubCmd) {
 	case PRIV_CMD_SET_TX_POWER:
 		{
-			INT_32 *setting = prIwReqData->data.pointer;
+			INT_32 setting[4] = {0};
 			UINT_16 i;
+
+			if (prIwReqData->data.length > 4)
+				return -EINVAL;
+			if (copy_from_user(setting, prIwReqData->data.pointer,
+					   prIwReqData->data.length * sizeof(INT_32)))
+				return -EFAULT;
 
 #if 0
 			DBGLOG(REQ, INFO, "Tx power num = %d\n", prIwReqData->data.length);
@@ -1813,6 +1820,10 @@ _priv_set_struct(IN struct net_device *prNetDev,
 	case PRIV_CMD_WSC_PROBE_REQ:
 		{
 			/* retrieve IE for Probe Request */
+			if (prIwReqData->data.length > GLUE_INFO_WSCIE_LENGTH) {
+				DBGLOG(REQ, ERROR, "Input data length is invalid %u\n", prIwReqData->data.length);
+				return -EINVAL;
+			}
 			if (prIwReqData->data.length > 0) {
 				if (copy_from_user(prGlueInfo->aucWSCIE, prIwReqData->data.pointer,
 						   prIwReqData->data.length)) {
@@ -1827,6 +1838,10 @@ _priv_set_struct(IN struct net_device *prNetDev,
 		break;
 #endif
 	case PRIV_CMD_OID:
+		if (prIwReqData->data.length > CMD_OID_BUF_LENGTH) {
+			DBGLOG(REQ, ERROR, "Input data length is invalid %u\n", prIwReqData->data.length);
+			return -EINVAL;
+		}
 		if (copy_from_user(&aucOidBuf[0], prIwReqData->data.pointer, prIwReqData->data.length)) {
 			status = -EFAULT;
 			break;
@@ -1853,6 +1868,10 @@ _priv_set_struct(IN struct net_device *prNetDev,
 		prNdisReq = (P_NDIS_TRANSPORT_STRUCT) &aucOidBuf[0];
 
 		/* kalMemCopy(&prNdisReq->ndisOidContent[0], prIwReqData->data.pointer, 8); */
+		if (prIwReqData->data.length > (sizeof(aucOidBuf) - OFFSET_OF(NDIS_TRANSPORT_STRUCT, ndisOidContent))) {
+			DBGLOG(REQ, ERROR, "Input data length is invalid %u\n", prIwReqData->data.length);
+			return -EINVAL;
+		}
 		if (copy_from_user(&prNdisReq->ndisOidContent[0], prIwReqData->data.pointer,
 			prIwReqData->data.length)) {
 			status = -EFAULT;
@@ -2404,6 +2423,11 @@ _priv_set_string(IN struct net_device *prNetDev,
 	if (FALSE == GLUE_CHK_PR3(prNetDev, prIwReqData, pcExtra))
 		return -EINVAL;
 	GlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prNetDev));
+
+	if (prIwReqData->data.length > CMD_OID_BUF_LENGTH) {
+		DBGLOG(REQ, ERROR, "Input data length is invalid %u\n", prIwReqData->data.length);
+		return -EINVAL;
+	}
 
 	InBuf = aucOidBuf;
 	InBufLen = prIwReqData->data.length;
