@@ -315,25 +315,25 @@ static int closeFlash(void)
 /* /}@@ */
 static int gLowPowerVbat = LOW_BATTERY_LEVEL_0;
 
-// static void Lbat_protection_powerlimit_flash(LOW_BATTERY_LEVEL level)
-// {
-	// logI("Lbat_protection_powerlimit_flash %d (%d %d %d %d)\n", level, LOW_BATTERY_LEVEL_0,
-	     // LOW_BATTERY_LEVEL_1, LOW_BATTERY_LEVEL_2, __LINE__);
-	// logI("Lbat_protection_powerlimit_flash %d (%d %d %d %d)\n", level, LOW_BATTERY_LEVEL_0,
-	     // LOW_BATTERY_LEVEL_1, LOW_BATTERY_LEVEL_2, __LINE__);
-	// if (level == LOW_BATTERY_LEVEL_0) {
-		// gLowPowerVbat = LOW_BATTERY_LEVEL_0;
-	// } else if (level == LOW_BATTERY_LEVEL_1) {
-		// closeFlash();
-		// gLowPowerVbat = LOW_BATTERY_LEVEL_1;
+static void Lbat_protection_powerlimit_flash(LOW_BATTERY_LEVEL level)
+{
+	logI("Lbat_protection_powerlimit_flash %d (%d %d %d %d)\n", level, LOW_BATTERY_LEVEL_0,
+	     LOW_BATTERY_LEVEL_1, LOW_BATTERY_LEVEL_2, __LINE__);
+	logI("Lbat_protection_powerlimit_flash %d (%d %d %d %d)\n", level, LOW_BATTERY_LEVEL_0,
+	     LOW_BATTERY_LEVEL_1, LOW_BATTERY_LEVEL_2, __LINE__);
+	if (level == LOW_BATTERY_LEVEL_0) {
+		gLowPowerVbat = LOW_BATTERY_LEVEL_0;
+	} else if (level == LOW_BATTERY_LEVEL_1) {
+		closeFlash();
+		gLowPowerVbat = LOW_BATTERY_LEVEL_1;
 
-	// } else if (level == LOW_BATTERY_LEVEL_2) {
-		// closeFlash();
-		// gLowPowerVbat = LOW_BATTERY_LEVEL_2;
-	// } else {
-		// /* unlimit cpu and gpu */
-	// }
-// }
+	} else if (level == LOW_BATTERY_LEVEL_2) {
+		closeFlash();
+		gLowPowerVbat = LOW_BATTERY_LEVEL_2;
+	} else {
+		/* unlimit cpu and gpu */
+	}
+}
 
 
 
@@ -654,39 +654,10 @@ static struct flashlight_data flashlight_private;
 static dev_t flashlight_devno;
 static struct cdev flashlight_cdev;
 /* ======================================================================== */
-
-/************************aeon add for factory mode flashlight test*********************/
-extern int Flashlight_Switch;
-extern void Flashlight_ON(void);
-extern void Flashlight_OFF(void);
-static ssize_t show_Flashlight_Ctl(struct device *dev,struct device_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%d\n", Flashlight_Switch);
-}
-static ssize_t store_Flashlight_Ctl(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
-{
-	if(buf != NULL && size != 0)
-			{
-					if(buf[0]== '0')
-					{
-							Flashlight_OFF();
-					}else
-					{
-						    Flashlight_ON();
-					}
-			}
-			return size;
-
-}
-static DEVICE_ATTR(Flashlight_Ctl, 0664, show_Flashlight_Ctl, store_Flashlight_Ctl);
-
-/************************************end****************************************************/
-
 #define ALLOC_DEVNO
 static int flashlight_probe(struct platform_device *dev)
 {
 	int ret = 0, err = 0;
-    int ret_device_file = 0;//aeon add for factory mode
 
 	logI("[flashlight_probe] start ~");
 
@@ -732,7 +703,6 @@ static int flashlight_probe(struct platform_device *dev)
 		goto flashlight_probe_error;
 	}
 
-    ret_device_file = device_create_file(&(dev->dev), &dev_attr_Flashlight_Ctl); //aeon add for factory mode
 	/* initialize members */
 	spin_lock_init(&flashlight_private.lock);
 	init_waitqueue_head(&flashlight_private.read_wait);
@@ -816,7 +786,7 @@ static int __init flashlight_init(void)
 		return ret;
 	}
 
-	//register_low_battery_notify(&Lbat_protection_powerlimit_flash, LOW_BATTERY_PRIO_FLASHLIGHT);
+	register_low_battery_notify(&Lbat_protection_powerlimit_flash, LOW_BATTERY_PRIO_FLASHLIGHT);
 	register_battery_percent_notify(&bat_per_protection_powerlimit_flashlight,
 					BATTERY_PERCENT_PRIO_FLASHLIGHT);
 /* @@    register_battery_oc_notify(&bat_oc_protection_powerlimit, BATTERY_OC_PRIO_FLASHLIGHT); */
