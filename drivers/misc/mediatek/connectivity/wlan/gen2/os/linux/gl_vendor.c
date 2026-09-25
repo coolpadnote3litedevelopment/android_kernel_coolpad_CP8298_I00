@@ -308,7 +308,10 @@ int mtk_cfg80211_vendor_set_config(struct wiphy *wiphy, struct wireless_dev *wde
 					len_bucket += NLA_ALIGN(attr[k]->nla_len);
 					break;
 				case GSCAN_ATTRIBUTE_BUCKET_NUM_CHANNELS:
-					prWifiScanCmd->buckets[i].num_channels = nla_get_u32(attr[k]);
+					u4ArySize = nla_get_u32(attr[k]);
+					prWifiScanCmd->buckets[i].num_channels =
+						(u4ArySize <= GSCAN_MAX_CHANNELS)
+						? u4ArySize : GSCAN_MAX_CHANNELS;
 					len_bucket += NLA_ALIGN(attr[k]->nla_len);
 					DBGLOG(REQ, TRACE, "bucket%d: attr=0x%x, num_channels=%d nla_len = %d, \r\n",
 					       i, *(UINT_32 *) attr[k], nla_get_u32(attr[k]), attr[k]->nla_len);
