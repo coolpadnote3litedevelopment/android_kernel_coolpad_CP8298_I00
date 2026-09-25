@@ -170,7 +170,13 @@ static void ta_nl_data_handler(struct sk_buff *skb)
 	struct tad_nl_msg_t *tad_msg = NULL;
 	int size = 0;
 
+	if (skb->len < NLMSG_HDRLEN)
+		return;
+
 	nlh = (struct nlmsghdr *)skb->data;
+	if (nlh->nlmsg_len < NLMSG_HDRLEN + TAD_NL_MSG_T_HDR_LEN || nlh->nlmsg_len > skb->len)
+		return;
+
 	pid = NETLINK_CREDS(skb)->pid;
 	uid = NETLINK_CREDS(skb)->uid;
 	seq = nlh->nlmsg_seq;
