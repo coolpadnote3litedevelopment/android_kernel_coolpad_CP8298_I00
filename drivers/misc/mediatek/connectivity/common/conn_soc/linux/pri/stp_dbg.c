@@ -1390,6 +1390,8 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 		}
 
 		len = pTemp - pDtr;
+		if (len > STP_ASSERT_INFO_SIZE - osal_strlen("assert@") - 2)
+			len = STP_ASSERT_INFO_SIZE - osal_strlen("assert@") - 2;
 		osal_memcpy(&g_stp_dbg_cpupcr->assert_info[0], "assert@", osal_strlen("assert@"));
 		osal_memcpy(&g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@")], pDtr, len);
 		g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@") + len] = '_';
