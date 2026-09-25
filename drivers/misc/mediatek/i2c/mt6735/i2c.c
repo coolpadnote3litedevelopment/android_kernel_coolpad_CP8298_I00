@@ -1306,7 +1306,7 @@ int i2c_tui_enable_clock(void)
 	enable_clock(MT_CG_PERI_APDMA, "i2c");
 #else
 	struct i2c_adapter *adap;
-	struct mt_i2c *i2c;
+	struct mt_i2c_t *i2c;
 
 	adap = i2c_get_adapter(1);
 	if (!adap) {
@@ -1329,7 +1329,7 @@ int i2c_tui_disable_clock(void)
 	disable_clock(MT_CG_PERI_APDMA, "i2c");
 #else
 	struct i2c_adapter *adap;
-	struct mt_i2c *i2c;
+	struct mt_i2c_t *i2c;
 
 	adap = i2c_get_adapter(1);
 	if (!adap) {
