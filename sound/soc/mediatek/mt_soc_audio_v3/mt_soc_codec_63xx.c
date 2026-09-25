@@ -141,7 +141,7 @@ static unsigned int pin_mode_extspkamp, pin_mode_extspkamp_2, pin_mode_vowclk, p
 
 
 #ifdef CONFIG_MTK_SPEAKER
-static int Speaker_mode = AUDIO_SPEAKER_MODE_D;
+static int Speaker_mode = AUDIO_SPEAKER_MODE_AB;
 static unsigned int Speaker_pga_gain = 1;	/* default 0Db. */
 static bool mSpeaker_Ocflag;
 #endif
@@ -2838,7 +2838,7 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 				/* "ADC2", headset mic */
 				SetDCcoupleNP(AUDIO_MIC_BIAS1, mAudio_Analog_Mic1_mode);
 				/* micbias1 DCCopuleNP */
-				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0710, 0xff90);
+				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0790, 0xff90);
 				/* Enable MICBIAS1, MISBIAS1 = 2P5V ?// or 2P7V George? */
 			}
 			/* Ana_Set_Reg(AUDENC_ANA_CON15, 0x0003, 0x000f); //Audio L PGA 18 dB gain(SMT) */
@@ -3225,7 +3225,7 @@ static bool TurnOnADcPowerDCC(int ADCType, bool enable, int ECMmode)
 
 					/* Ana_Set_Reg(AUDENC_ANA_CON9, 0x0211, 0xff1f);
 					//Enable MICBIAS0 and MICBIAS1, MISBIAS0 = 1P9V , [6752] ALPS01824949 */
-					Ana_Set_Reg(AUDENC_ANA_CON9, 0x0711, 0xff1f);
+					Ana_Set_Reg(AUDENC_ANA_CON9, 0x0111, 0xff1f);
 					/* Enable MICBIAS0 and MICBIAS1, MISBIAS0 = 2P5V */
 				}
 				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0004, 0xffff);
@@ -3273,15 +3273,15 @@ static bool TurnOnADcPowerDCC(int ADCType, bool enable, int ECMmode)
 			if (ECMmode == 1) {	/* differenital */
 				/* Ana_Set_Reg(AUDENC_ANA_CON9, 0x0217, 0xff1f);
 				//Enable MICBIAS0 and MICBIAS1, MISBIAS0 = 1P9V , [6752] ALPS01824949 */
-				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0717, 0xff1f);
+				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0117, 0xff1f);
 				/* Enable MICBIAS0 and MICBIAS1, MISBIAS0 = 2P5V */
 
 			} else if (ECMmode == 2) {	/* single end */
-				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0713, 0xff1f);
+				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0113, 0xff1f);
 				/* Enable MICBIAS0 and MICBIAS1, MISBIAS0 = 2P5V */
 			} else {	/* MEMS */
 
-				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0711, 0xff1f);
+				Ana_Set_Reg(AUDENC_ANA_CON9, 0x0111, 0xff1f);
 				/* Enable MICBIAS0 and MICBIAS1, MISBIAS0 = 2P5V */
 			}
 			/* Ana_Set_Reg(AUDENC_ANA_CON9, 0x0207, 0xff0f); //MICBIAS0 DCC SwithP/N on //DCC */
@@ -4511,7 +4511,7 @@ static const struct snd_soc_dapm_widget mt6331_dapm_widgets[] = {
 };
 
 static const struct snd_soc_dapm_route mtk_audio_map[] = {
-	{"VOICE_Mux_E", "Voice Mux", "SPEAKER PGA"},
+	//{"VOICE_Mux_E", "Voice Mux", "SPEAKER PGA"},
 };
 
 static void mt6331_codec_init_reg(struct snd_soc_codec *codec)

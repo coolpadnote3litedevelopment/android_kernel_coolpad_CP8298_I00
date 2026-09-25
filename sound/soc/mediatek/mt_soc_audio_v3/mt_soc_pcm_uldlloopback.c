@@ -149,8 +149,13 @@ static int mtk_uldlloopbackpcm_close(struct snd_pcm_substream *substream)
 		      Soc_Aud_InterConnectionOutput_O01);
 	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I03,
 		      Soc_Aud_InterConnectionOutput_O03);
-	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I04,
+	// modified by wangping@yulong.com 20150417
+    // 解决loopback测试时耳机右声道没有声音的问题
+	/* SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I04,
+		      Soc_Aud_InterConnectionOutput_O04); */
+	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I03,
 		      Soc_Aud_InterConnectionOutput_O04);
+	// modified end.
 
 
 	SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_IN_ADC, false);
@@ -273,8 +278,13 @@ static int mtk_uldlloopback_pcm_prepare(struct snd_pcm_substream *substream)
 		      Soc_Aud_InterConnectionOutput_O01);
 	SetConnection(Soc_Aud_InterCon_Connection, Soc_Aud_InterConnectionInput_I03,
 		      Soc_Aud_InterConnectionOutput_O03);
-	SetConnection(Soc_Aud_InterCon_Connection, Soc_Aud_InterConnectionInput_I04,
+	// modified by wangping@yulong.com 20150417
+    // 解决loopback测试时耳机右声道没有声音的问题
+	/* SetConnection(Soc_Aud_InterCon_Connection, Soc_Aud_InterConnectionInput_I04,
+		      Soc_Aud_InterConnectionOutput_O04); */
+	SetConnection(Soc_Aud_InterCon_Connection, Soc_Aud_InterConnectionInput_I03,
 		      Soc_Aud_InterConnectionOutput_O04);
+	// modified end.
 
 	Afe_Set_Reg(AFE_ADDA_TOP_CON0, 0, 0x1); /* Using Internal ADC */
 
