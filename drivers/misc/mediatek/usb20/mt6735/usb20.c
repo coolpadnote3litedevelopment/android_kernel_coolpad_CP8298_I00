@@ -956,7 +956,7 @@ static ssize_t mt_usb_store_tx(struct device *dev, struct device_attribute *attr
 		DBG(0, "dev is null!!\n");
 		return count;
 	/* } else if (1 == sscanf(buf, "%d", &val)) { */
-	} else if (kstrtol(buf, 10, (long *)&val) == 0) {
+	} else if (kstrtouint(buf, 10, &val) == 0) {
 		DBG(0, "\n Write TX : %d\n", val);
 
 #ifdef FPGA_PLATFORM
