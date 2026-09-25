@@ -803,7 +803,10 @@ static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 	token5 = strsep(&temp, delim);
 	pr_debug("token5 = %s\n", token5);
 
-	if (strcmp(token1, ParSetkeyAfe) == 0) {
+	if (!token1 || !token3)
+		goto free;
+
+	if (token5 && strcmp(token1, ParSetkeyAfe) == 0) {
 		pr_debug("strcmp (token1,ParSetkeyAfe)\n");
 		ret = kstrtoul(token3, 16, &regaddr);
 		ret = kstrtoul(token5, 16, &regvalue);
@@ -812,7 +815,7 @@ static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 		regvalue = Afe_Get_Reg(regaddr);
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", ParSetkeyAfe, regaddr, regvalue);
 	}
-	if (strcmp(token1, ParSetkeyAna) == 0) {
+	if (token5 && strcmp(token1, ParSetkeyAna) == 0) {
 		pr_debug("strcmp (token1,ParSetkeyAna)\n");
 		ret = kstrtoul(token3, 16, &regaddr);
 		ret = kstrtoul(token5, 16, &regvalue);
@@ -824,7 +827,7 @@ static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 		regvalue = Ana_Get_Reg(regaddr);
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", ParSetkeyAna, regaddr, regvalue);
 	}
-	if (strcmp(token1, ParSetkeyCfg) == 0) {
+	if (token5 && strcmp(token1, ParSetkeyCfg) == 0) {
 		pr_debug("strcmp (token1,ParSetkeyCfg)\n");
 		ret = kstrtoul(token3, 16, &regaddr);
 		ret = kstrtoul(token5, 16, &regvalue);
@@ -846,6 +849,7 @@ static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", PareGetkeyAna, regaddr, regvalue);
 	}
 
+free:
 	kfree(str_begin);
 
 exit:
