@@ -2121,7 +2121,7 @@ long WMT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			pAtchNum = arg;
 
 			if (pPatchInfo == NULL)
-				pPatchInfo = kcalloc(pAtchNum, sizeof(WMT_PATCH_INFO), GFP_ATOMIC);
+				pPatchInfo = kcalloc(MAX_PATCH_NUM, sizeof(WMT_PATCH_INFO), GFP_ATOMIC);
 			if (!pPatchInfo) {
 				WMT_ERR_FUNC("allocate memory fail!\n");
 				iRet = -EFAULT;
