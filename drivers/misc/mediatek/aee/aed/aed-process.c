@@ -132,7 +132,11 @@ int aed_get_process_bt(struct aee_process_bt *bt)
 
 	err = 0;
 	if (bt->pid > 0) {
+		rcu_read_lock();
 		task = find_task_by_vpid(bt->pid);
+		if (task)
+			get_task_struct(task);
+		rcu_read_unlock();
 		if (task == NULL) {
 			err = -EINVAL;
 			goto exit;
@@ -144,11 +148,11 @@ int aed_get_process_bt(struct aee_process_bt *bt)
 
 	err = mutex_lock_killable(&task->signal->cred_guard_mutex);
 	if (err)
-		goto exit;
+		goto put_task;
 	if (!ptrace_may_access(task, PTRACE_MODE_ATTACH_FSCREDS)) {
 		mutex_unlock(&task->signal->cred_guard_mutex);
 		err = -EPERM;
-		goto exit;
+		goto put_task;
 	}
 
 	mutex_unlock(&task->signal->cred_guard_mutex);
@@ -184,6 +188,8 @@ int aed_get_process_bt(struct aee_process_bt *bt)
 	preempt_enable();
 	put_online_cpus();
 
+put_task:
+	put_task_struct(task);
 exit:
 	up(&process_bt_sem);
 	return err;

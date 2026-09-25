@@ -1433,7 +1433,11 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				struct task_struct *task;
 				struct pt_regs *user_ret = NULL;
 
+				rcu_read_lock();
 				task = find_task_by_vpid(tmp->tid);
+				if (task)
+					get_task_struct(task);
+				rcu_read_unlock();
 				if (task == NULL) {
 					kfree(tmp);
 					ret = -EINVAL;
@@ -1441,11 +1445,13 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				}
 				user_ret = task_pt_regs(task);
 				if (NULL == user_ret) {
+					put_task_struct(task);
 					kfree(tmp);
 					ret = -EINVAL;
 					goto EXIT;
 				}
 				memcpy(&(tmp->regs), user_ret, sizeof(struct pt_regs));
+				put_task_struct(task);
 				if (copy_to_user
 				    ((struct aee_thread_reg __user *)arg, tmp,
 				     sizeof(struct aee_thread_reg))) {
@@ -1492,13 +1498,20 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				struct task_struct *task;
 				int dumpable = -1;
 
+				rcu_read_lock();
 				task = find_task_by_vpid(pid);
+				if (task)
+					get_task_struct(task);
+				rcu_read_unlock();
 				if (task == NULL) {
 					LOGD("%s: process:%d task null\n", __func__, pid);
 					ret = -EINVAL;
 					goto EXIT;
 				}
+				task_lock(task);
 				if (task->mm == NULL) {
+					task_unlock(task);
+					put_task_struct(task);
 					LOGD("%s: process:%d task mm null\n", __func__, pid);
 					ret = -EINVAL;
 					goto EXIT;
@@ -1510,6 +1523,8 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				} else
 					LOGD("%s: get process:%d dumpable:%d\n", __func__, pid,
 					     dumpable);
+				task_unlock(task);
+				put_task_struct(task);
 
 			} else {
 				LOGD("%s: check suid dumpable ioctl pid invalid\n", __func__);
