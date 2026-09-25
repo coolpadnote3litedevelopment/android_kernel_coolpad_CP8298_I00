@@ -2830,7 +2830,11 @@ mtk_p2p_wext_set_key(IN struct net_device *prDev,
 	do {
 		if (wrqu->encoding.pointer) {
 			u4ExtraSize = wrqu->encoding.length;
-			/*need confirm u4ExtraSize > 0 but is not very large*/
+			if (u4ExtraSize < sizeof(struct iw_encode_ext) ||
+			    u4ExtraSize > sizeof(struct iw_encode_ext) + sizeof(prKey->aucKeyMaterial)) {
+				ret = -EINVAL;
+				break;
+			}
 			prExtraBuf = kalMemAlloc(u4ExtraSize, VIR_MEM_TYPE);
 
 			if (!prExtraBuf) {
@@ -2853,6 +2857,11 @@ mtk_p2p_wext_set_key(IN struct net_device *prDev,
 		prIWEncExt = (struct iw_encode_ext *)prExtraBuf;
 
 		if (GLUE_CHK_PR3(prDev, prEnc, prExtraBuf) != TRUE) {
+			ret = -EINVAL;
+			break;
+		}
+
+		if (prIWEncExt->key_len > u4ExtraSize - sizeof(struct iw_encode_ext)) {
 			ret = -EINVAL;
 			break;
 		}
