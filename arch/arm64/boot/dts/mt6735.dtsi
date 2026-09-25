@@ -1415,6 +1415,14 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 			reg = <0x15008000 0x1000>;  /* SENINF_ADDR */
 		};
 
+		camera_cal_drv: camera_cal_drv@ {
+			compatible = "mediatek,camera_cal_drv";
+		};
+
+		camera_gpio_flashlight: camera_gpio_flashlight@ {
+			compatible = "mediatek,gpio_control_flash";
+		};
+
 		fdvt@1500b000 {
 			compatible = "mediatek,fdvt";
 			reg = <0x1500b000 0x1000>;
@@ -2943,9 +2951,6 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 	gsensor {
 		compatible = "mediatek,gsensor";
 	};
-        gsensor_mc {
-                compatible = "mediatek,gsensor_mc";
-        };
 	alsps:als_ps {
 		compatible = "mediatek,als_ps";
 	};
@@ -3001,11 +3006,6 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 		status = "disabled";
 	};
 
-	mse: mse {
-		compatible = "mediatek, mse-eint";
-		status = "disabled";
-	};
-
 	ext_buck_oc: ext_buck_oc {
 		compatible = "mediatek, ext_buck_oc-eint";
 		status = "disabled";
@@ -3019,15 +3019,23 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 		compatible = "mediatek,multibridge";
 	};
 
-/* sanford.lin add start for aeon gpio*/
-	aeon_gpio:aeon_gpio {
-		compatible = "mediatek,aeon_gpio";
+	/* fix compiling err, huyue */
+	touch_panel: touch_panel {
+		compatible = "mediatek, touch_panel-eint";
 	};
-/* sanford.lin add end for aeon gpio*/
 
-	hall: hall {
-		compatible = "mediatek, hall-eint";
+	dsi_te_1: dsi_tel_1 {
+		compatible = "mediatek, dsi_te_1-eint";
 	};
+
+	mt6322_pmic: mt6322_pmic {
+		compatible = "mediatek, mt6322_pmic-eint";
+	};
+
+	hall_1: hall_1 {
+		compatible = "mediatek, hall_1-eint";
+	};
+
 };
 
 &mt8193ckgen {
@@ -3079,7 +3087,7 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 		};
 
 		pins_cmd1_dat {
-			pins = <PINMUX_GPIO9__FUNC_GPIO9>;
+			pins = <PINMUX_GPIO9__FUNC_MD_EINT2>;
 		};
 	};
 
@@ -3326,6 +3334,7 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 		};
 	};
 
+
 	/* UART3: rx set, rx clear, tx clear, tx clear*/
 	uart3_gpio_def_cfg:uart3gpiodefault {
 
@@ -3354,6 +3363,7 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 			output-high;
 		};
 	};
+
 	/* UART GPIO Settings - End */
 };
 
@@ -3378,28 +3388,4 @@ initrd=0x44000000,0x300000 loglevel=8 androidboot.hardware=mt6735";
 	/* IRTX GPIO Settings -End */
 };
 
-#include "aeon_gpio.dtsi"
-
-&hall {
-	pinctrl-names = "pin_default", "pin_cfg";
-	pinctrl-0 = <&hall_intpin_default>;
-	pinctrl-1 = <&hall_intpin_cfg>;
-	status = "okay";
-};
-
-&pio {
-	hall_intpin_cfg: hallpincfg {
-	    //pins_cmd_dat {
-			//pins = <PINMUX_GPIOXX__FUNC_GPIOXX>;
-			//slew-rate = <0>;
-			//bias-disable;
-	    //};
-	};
-
-	hall_intpin_default: halldefaultcfg {
-
-	};
-};
-
 #include <trusty.dtsi>
-
