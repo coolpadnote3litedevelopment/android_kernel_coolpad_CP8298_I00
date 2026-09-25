@@ -40,19 +40,21 @@
 #define MTK_MULTI_BAT_PROFILE_SUPPORT
 #define MTK_GET_BATTERY_ID_BY_AUXADC
 #define BATTERY_ID_CHANNEL_NUM                7
+#if !defined(CONFIG_YULONG_BATTERY_2500MA)
 #define TOTAL_BATTERY_NUMBER                  4
+#endif
 //end
 
 /* Qmax for battery  */
-#define Q_MAX_POS_50 1432	//1523
-#define Q_MAX_POS_25 1400	//1489
-#define Q_MAX_POS_0 1196	//1272
-#define Q_MAX_NEG_10 1118	//1189
+#define Q_MAX_POS_50 1523
+#define Q_MAX_POS_25 1489
+#define Q_MAX_POS_0 1272
+#define Q_MAX_NEG_10 1189
 
-#define Q_MAX_POS_50_H_CURRENT 1420	//1511
-#define Q_MAX_POS_25_H_CURRENT 1374	//1462
-#define Q_MAX_POS_0_H_CURRENT 769	//818
-#define Q_MAX_NEG_10_H_CURRENT 140	//149
+#define Q_MAX_POS_50_H_CURRENT 1511
+#define Q_MAX_POS_25_H_CURRENT 1462
+#define Q_MAX_POS_0_H_CURRENT 818
+#define Q_MAX_NEG_10_H_CURRENT 149
 
 
 /* Discharge Percentage */
@@ -66,7 +68,7 @@
 #else
 #define CUST_TRACKING_POINT  1
 #endif
-#define CUST_R_SENSE 68
+#define CUST_R_SENSE 56
 #define CUST_HW_CC 0
 #define AGING_TUNING_VALUE 103
 #define CUST_R_FG_OFFSET 0
