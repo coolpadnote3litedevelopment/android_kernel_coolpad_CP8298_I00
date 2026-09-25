@@ -1824,6 +1824,8 @@ ssize_t WMT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_po
 
 	if (pCmd != NULL) {
 		cmdLen = osal_strlen(pCmd) < NAME_MAX ? osal_strlen(pCmd) : NAME_MAX;
+		if (cmdLen > count)
+			cmdLen = count;
 		WMT_DBG_FUNC("cmd str(%s)\n", pCmd);
 		if (copy_to_user(buf, pCmd, cmdLen))
 			iRet = -EFAULT;
