@@ -713,7 +713,7 @@ ssize_t mt_gpio_store_pin(struct device *dev, struct device_attribute *attr, con
 		/* mt_reg_test(); */
 	} else if (!strncmp(buf, "-md", 3)) {
 		buf += 3;
-		ret = sscanf(buf, "%s", md_str);
+		ret = sscanf(buf, "%127s", md_str);
 		mt_get_md_gpio_debug(md_str);
 	} else if (!strncmp(buf, "-k", 2)) {
 		buf += 2;
