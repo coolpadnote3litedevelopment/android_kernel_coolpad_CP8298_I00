@@ -1541,7 +1541,7 @@ static long vcodec_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned 
 
 	case VCODEC_GET_CPU_LOADING_INFO: {
 		VAL_UINT8_T *user_data_addr;
-		VAL_VCODEC_CPU_LOADING_INFO_T _temp;
+		VAL_VCODEC_CPU_LOADING_INFO_T _temp = {0};
 
 		MODULE_MFV_LOGD("VCODEC_GET_CPU_LOADING_INFO +\n");
 		user_data_addr = (VAL_UINT8_T *)arg;
@@ -1573,6 +1573,12 @@ static long vcodec_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned 
 			MODULE_MFV_LOGE("[ERROR] VCODEC_GET_CORE_LOADING, copy_from_user failed: %lu\n", ret);
 			return -EFAULT;
 		}
+
+		if (rTempCoreLoading.CPUid < 0) {
+			MODULE_MFV_LOGE("[ERROR] rTempCoreLoading.CPUid < 0\n");
+			return -EFAULT;
+		}
+
 		if (rTempCoreLoading.CPUid > num_possible_cpus()) {
 			MODULE_MFV_LOGE("[ERROR] rTempCoreLoading.CPUid(%d) > num_possible_cpus(%d)\n",
 			rTempCoreLoading.CPUid, num_possible_cpus());
