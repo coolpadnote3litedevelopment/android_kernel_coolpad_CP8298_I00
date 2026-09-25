@@ -127,7 +127,8 @@ void OffloadService_SetVolume(int vol)
 {
 	pr_warn("%s gain:0x%x\n", __func__, vol);
 	afe_offload_service.hw_gain = vol;
-	afe_offload_service.setVol(vol);
+	if (afe_offload_service.setVol)
+		afe_offload_service.setVol(vol);
 }
 
 int OffloadService_GetVolume(void)
