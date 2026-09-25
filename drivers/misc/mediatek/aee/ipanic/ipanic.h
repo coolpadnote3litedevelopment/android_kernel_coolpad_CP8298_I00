@@ -10,7 +10,7 @@
 
 #define AEE_IPANIC_PLABEL "expdb"
 #ifdef CONFIG_MTK_GPT_SCHEME_SUPPORT
-#define AEE_EXPDB_PATH "/dev/block/platform/mtk-msdc.0/by-name/expdb"
+#define AEE_EXPDB_PATH "/dev/block/platform/mtk-msdc.0/11230000.msdc0/by-name/expdb"
 #else
 #define AEE_EXPDB_PATH "/dev/expdb"
 #endif
