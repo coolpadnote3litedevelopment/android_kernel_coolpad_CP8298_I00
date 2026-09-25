@@ -22,3 +22,4 @@ config MTK_AUTO_DETECT_ALSPS
 #source "drivers/misc/mediatek/alsps/EPL2182-new/Kconfig"
 source "drivers/misc/mediatek/alsps/stk3x1x-new/Kconfig"
 source "drivers/misc/mediatek/alsps/aeon_stk3x1x-new/Kconfig"
+source "drivers/misc/mediatek/alsps/pa12200001/Kconfig"

@@ -33,6 +33,7 @@ obj-$(CONFIG_MTK_RPR410)	+=  rpr410/
 obj-$(CONFIG_MTK_TMD2771)	+=  tmd2771/
 obj-$(CONFIG_MTK_TMD2771_AUTO)	+=  tmd2771_auto/
 obj-$(CONFIG_AEON_STK3X1X_NEW)	+=  aeon_stk3x1x-new/
+obj-$(CONFIG_MTK_PA12200001)	+=  pa12200001/
 
 
 
