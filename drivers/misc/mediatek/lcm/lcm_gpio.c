@@ -314,16 +314,16 @@ LCM_STATUS lcm_gpio_set_data1(char type, const LCM_DATA_T1 *t1)
 void lcm_vddi_power_on(void)
 {
     mt_set_gpio_mode(GPIO_LCM_PWR2_EN|0x80000000,GPIO_MODE_00);
-    mt_set_gpio_dir(GPIO_LCM_PWR2_EN,GPIO_DIR_OUT);
-    mt_set_gpio_out(GPIO_LCM_PWR2_EN,GPIO_OUT_ONE);
+    mt_set_gpio_dir(GPIO_LCM_PWR2_EN|0x80000000,GPIO_DIR_OUT);
+    mt_set_gpio_out(GPIO_LCM_PWR2_EN|0x80000000,GPIO_OUT_ONE);
     mdelay(10);
 }
 void lcm_vddi_power_off(void)
 {
     mdelay(5);
     mt_set_gpio_mode(GPIO_LCM_PWR2_EN|0x80000000,GPIO_MODE_00);
-    mt_set_gpio_dir(GPIO_LCM_PWR2_EN,GPIO_DIR_OUT);
-    mt_set_gpio_out(GPIO_LCM_PWR2_EN,GPIO_OUT_ZERO);
+    mt_set_gpio_dir(GPIO_LCM_PWR2_EN|0x80000000,GPIO_DIR_OUT);
+    mt_set_gpio_out(GPIO_LCM_PWR2_EN|0x80000000,GPIO_OUT_ZERO);
     mdelay(5);
 }
 //end 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
