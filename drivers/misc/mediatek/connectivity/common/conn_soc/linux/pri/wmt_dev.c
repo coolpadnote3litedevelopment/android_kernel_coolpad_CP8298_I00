@@ -1143,6 +1143,9 @@ static ssize_t wmt_dev_dbg_read(struct file *filp, char __user *buf, size_t coun
 	INT32 i_ret = 0;
 	PINT8 warn_msg = "no data available, please run echo 15 xx > /proc/driver/wmt_psm first\n";
 
+	if (count == 0)
+		return 0;
+
 	if (*f_pos > 0) {
 		retval = 0;
 	} else {
@@ -1171,7 +1174,7 @@ static ssize_t wmt_dev_dbg_read(struct file *filp, char __user *buf, size_t coun
 			*/
 
 			WMT_INFO_FUNC("%d bytes available\n", gCoexBuf.availSize);
-			max_num = ((osal_sizeof(msg_info) > count ? osal_sizeof(msg_info) : count) - 1) / 5;
+			max_num = ((osal_sizeof(msg_info) < count ? osal_sizeof(msg_info) : count) - 1) / 5;
 
 			if (max_num > gCoexBuf.availSize)
 				max_num = gCoexBuf.availSize;
