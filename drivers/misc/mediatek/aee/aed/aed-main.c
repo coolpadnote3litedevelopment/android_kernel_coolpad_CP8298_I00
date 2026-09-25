@@ -584,7 +584,7 @@ static int ke_gen_ind_msg(struct aee_oops *oops)
 		wake_up(&aed_dev.kewait);
 		/* wait until current ke work is done, then aed_dev is available,
 		   add a 60s timeout in case of debuggerd quit abnormally */
-		if (wait_for_completion_timeout(&aed_ke_com, msecs_to_jiffies(5 * 60 * 1000)))
+		if (!wait_for_completion_timeout(&aed_ke_com, msecs_to_jiffies(5 * 60 * 1000)))
 			LOGE("%s: TIMEOUT, not receive close event, skip\n", __func__);
 	}
 	return 0;
