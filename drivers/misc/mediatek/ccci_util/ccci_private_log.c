@@ -75,7 +75,7 @@ EXPORT_SYMBOL(ccci_log_write);
 
 static ssize_t ccci_log_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 {
-	unsigned int available, read_len, first_half;
+	unsigned int available, read_len, first_half, read_pos;
 	unsigned long flags;
 	int ret;
 
@@ -99,14 +99,19 @@ static ssize_t ccci_log_read(struct file *file, char __user *buf, size_t size, l
 	}
 
 	read_len = size < available ? size : available;
-	if (ccci_log_buf.read_pos + read_len > CCCI_LOG_BUF_SIZE) {
-		first_half = CCCI_LOG_BUF_SIZE - ccci_log_buf.read_pos;
-		ret = copy_to_user(buf, ccci_log_buf.buffer + ccci_log_buf.read_pos, first_half);
-		ret = copy_to_user(buf + first_half, ccci_log_buf.buffer, read_len - first_half);
+	read_pos = ccci_log_buf.read_pos;
+	spin_unlock_irqrestore(&ccci_log_buf.write_lock, flags);
+
+	if (read_pos + read_len > CCCI_LOG_BUF_SIZE) {
+		first_half = CCCI_LOG_BUF_SIZE - read_pos;
+		ret = copy_to_user(buf, ccci_log_buf.buffer + read_pos, first_half);
+		ret += copy_to_user(buf + first_half, ccci_log_buf.buffer, read_len - first_half);
 	} else {
-		ret = copy_to_user(buf, ccci_log_buf.buffer + ccci_log_buf.read_pos, read_len);
+		ret = copy_to_user(buf, ccci_log_buf.buffer + read_pos, read_len);
 	}
-	ccci_log_buf.read_pos = (ccci_log_buf.read_pos + read_len) & (CCCI_LOG_BUF_SIZE - 1);
+	spin_lock_irqsave(&ccci_log_buf.write_lock, flags);
+	read_len = read_len - ret;
+	ccci_log_buf.read_pos = (read_pos + read_len) & (CCCI_LOG_BUF_SIZE - 1);
 	atomic_set(&ccci_log_buf.last_ops, 1);
 	spin_unlock_irqrestore(&ccci_log_buf.write_lock, flags);
 	return read_len;
