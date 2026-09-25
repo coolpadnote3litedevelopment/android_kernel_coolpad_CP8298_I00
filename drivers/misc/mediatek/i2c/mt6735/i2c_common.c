@@ -238,7 +238,7 @@ static ssize_t set_config(struct device *dev, struct device_attribute *attr, con
 			&bus_id, &address, &operation, &trans_mode, &trans_stop,
 			&speed_mode, &pushpull_mode, &query_mode, &timing, &trans_num,
 			&trans_auxlen,&dir, data_buffer) ) { */
-	if (sscanf(buf, "%d %x %d %d %d %d %d %d %d %d %d %s", &bus_id, &address, &operation, &trans_mode,
+	if (sscanf(buf, "%d %x %d %d %d %d %d %d %d %d %d %1023s", &bus_id, &address, &operation, &trans_mode,
 		&trans_stop, &speed_mode, &pushpull_mode, &query_mode, &timing, &trans_num,
 		&trans_auxlen, data_buffer) != 0) {
 		if ((address != 0) && (operation <= 2)) {
@@ -356,26 +356,26 @@ static ssize_t set_config(struct device *dev, struct device_attribute *attr, con
 
 				if (operation == 1) {
 					hex2string(vir_addr, tmpbuffer, length >> 1);
-					sprintf(data_buffer, "1 %s", tmpbuffer);
+					snprintf(data_buffer, sizeof(data_buffer), "1 %s", tmpbuffer);
 					I2CLOG("received data: %s\n", tmpbuffer);
 				} else if (operation == 0) {
 					hex2string(vir_addr, tmpbuffer, trans_auxlen);
-					sprintf(data_buffer, "1 %s", tmpbuffer);
+					snprintf(data_buffer, sizeof(data_buffer), "1 %s", tmpbuffer);
 					I2CLOG("received data: %s\n", tmpbuffer);
 				} else {
-					sprintf(data_buffer, "1 %s", "00");
+					snprintf(data_buffer, sizeof(data_buffer), "1 %s", "00");
 				}
 				I2CLOG("Actual return Value:%d 0x%p\n", ret, vir_addr);
 			} else if (ret < 0) {
 
 				if (ret == -EINVAL)
-					sprintf(data_buffer, "0 %s", "Invalid Parameter");
+					snprintf(data_buffer, sizeof(data_buffer), "0 %s", "Invalid Parameter");
 				else if (ret == -ETIMEDOUT)
-					sprintf(data_buffer, "0 %s", "Transfer Timeout");
+					snprintf(data_buffer, sizeof(data_buffer), "0 %s", "Transfer Timeout");
 				else if (ret == -EREMOTEIO)
-					sprintf(data_buffer, "0 %s", "Ack Error");
+					snprintf(data_buffer, sizeof(data_buffer), "0 %s", "Ack Error");
 				else
-					sprintf(data_buffer, "0 %s", "unknown error");
+					snprintf(data_buffer, sizeof(data_buffer), "0 %s", "unknown error");
 				I2CLOG("Actual return Value:%d 0x%p\n", ret, vir_addr);
 			}
 
@@ -387,13 +387,25 @@ static ssize_t set_config(struct device *dev, struct device_attribute *attr, con
 			/* log for UT test. */
 			{
 				struct i2c_adapter *adap = i2c_get_adapter(bus_id);
-				struct mt_i2c_t *i2c = i2c_get_adapdata(adap);
+				struct mt_i2c_t *i2c = NULL;
+
+				if (adap == NULL) {
+					I2CERR("I2C  get adapter failed 0\n");
+					goto err;
+				}
+				i2c = i2c_get_adapdata(adap);
 
 				_i2c_dump_info(i2c);
 			}
 		} else {
 			struct i2c_adapter *adap = i2c_get_adapter(bus_id);
-			struct mt_i2c_t *i2c = i2c_get_adapdata(adap);
+			struct mt_i2c_t *i2c = NULL;
+
+			if (adap == NULL) {
+				I2CERR("I2C  get adapter failed 1\n");
+				goto err;
+			}
+			i2c = i2c_get_adapdata(adap);
 
 			if (operation == 3) {
 				_i2c_dump_info(i2c);

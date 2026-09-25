@@ -4,9 +4,6 @@
 /* ((va&0xfff)+size+0xfff)>>12 */
 #define mva_pageOffset(mva) ((mva)&0xfff)
 
-#define MVA_BLOCK_SIZE_ORDER     20	/* 1M */
-#define MVA_MAX_BLOCK_NR        4095	/* 4GB */
-
 #define MVA_BLOCK_SIZE      (1<<MVA_BLOCK_SIZE_ORDER)	/* 0x40000 */
 #define MVA_BLOCK_ALIGN_MASK (MVA_BLOCK_SIZE-1)	/* 0x3ffff */
 #define MVA_BLOCK_NR_MASK   (MVA_MAX_BLOCK_NR)	/* 0xfff */

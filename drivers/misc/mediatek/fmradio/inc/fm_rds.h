@@ -111,7 +111,7 @@ typedef struct rds_rt_t {
 typedef struct rds_raw_t {
 	fm_s32 dirty;		/* indicate if the data changed or not */
 	fm_s32 len;		/* the data len form chip */
-	fm_u8 data[146];
+	fm_u8 data[148];
 } rds_raw_t;
 
 typedef struct rds_group_cnt_t {

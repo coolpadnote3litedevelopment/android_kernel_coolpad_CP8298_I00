@@ -284,6 +284,7 @@ static void MMProfileInitBuffer(void)
 		} else if (MMProfileGlobals.buffer_size_record !=
 			   MMProfileGlobals.new_buffer_size_record) {
 			vfree(pMMProfileRingBuffer);
+			pMMProfileRingBuffer = NULL;
 			MMProfileGlobals.buffer_size_record =
 			    MMProfileGlobals.new_buffer_size_record;
 			MMProfileGlobals.buffer_size_bytes =
@@ -309,6 +310,7 @@ static void MMProfileInitBuffer(void)
 		} else if (MMProfileGlobals.meta_buffer_size !=
 			   MMProfileGlobals.new_meta_buffer_size) {
 			vfree(pMMProfileMetaBuffer);
+			pMMProfileMetaBuffer = NULL;
 			MMProfileGlobals.meta_buffer_size = MMProfileGlobals.new_meta_buffer_size;
 			bResetMetaBuffer = 1;
 		}
@@ -1235,11 +1237,13 @@ static ssize_t mmprofile_dbgfs_global_read(struct file *file, char __user *buf, 
 	return simple_read_from_buffer(buf, size, ppos, &MMProfileGlobals, MMProfileGlobalsSize);
 }
 
+#if 0
 static ssize_t mmprofile_dbgfs_global_write(struct file *file, const char __user *buf, size_t size,
 					    loff_t *ppos)
 {
 	return simple_write_to_buffer(&MMProfileGlobals, MMProfileGlobalsSize, ppos, buf, size);
 }
+#endif
 
 static const struct file_operations mmprofile_dbgfs_enable_fops = {
 	.read = mmprofile_dbgfs_enable_read,
@@ -1265,7 +1269,9 @@ static const struct file_operations mmprofile_dbgfs_buffer_fops = {
 
 static const struct file_operations mmprofile_dbgfs_global_fops = {
 	.read = mmprofile_dbgfs_global_read,
+#if 0
 	.write = mmprofile_dbgfs_global_write,
+#endif
 	.llseek = generic_file_llseek,
 };
 
@@ -1793,6 +1799,10 @@ static int mmprofile_mmap(struct file *file, struct vm_area_struct *vma)
 	unsigned int i = 0;
 
 	if (MMProfileGlobals.selected_buffer == MMProfileGlobalsBuffer) {
+		/* check user space buffer length */
+		if ((vma->vm_end - vma->vm_start) != MMProfileGlobalsSize)
+			return -EINVAL;
+
 		/* vma->vm_flags |= VM_RESERVED; */
 		/* vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot); */
 
@@ -1811,6 +1821,10 @@ static int mmprofile_mmap(struct file *file, struct vm_area_struct *vma)
 			/* pr_debug("pfn: 0x%08x\n", pfn); */
 		}
 	} else if (MMProfileGlobals.selected_buffer == MMProfilePrimaryBuffer) {
+		/* check user space buffer length */
+		if ((vma->vm_end - vma->vm_start) != MMProfileGlobals.buffer_size_bytes)
+			return -EINVAL;
+
 		MMProfileInitBuffer();
 
 		if (!bMMProfileInitBuffer)

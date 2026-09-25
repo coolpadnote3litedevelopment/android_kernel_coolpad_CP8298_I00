@@ -2436,7 +2436,7 @@ _priv_set_string(IN struct net_device *prNetDev,
 	if (copy_from_user(InBuf, prIwReqData->data.pointer, prIwReqData->data.length))
 		return -EFAULT;
 
-	Subcmd = CmdStringDecParse(prIwReqData->data.pointer, &InBuf, &InBufLen);
+	Subcmd = CmdStringDecParse(InBuf, &InBuf, &InBufLen);
 	DBGLOG(REQ, INFO, "priv_set_string> command = %u\n", (UINT32) Subcmd);
 
 	/* handle the command */
@@ -2865,7 +2865,7 @@ int priv_support_driver_cmd(IN struct net_device *prNetDev, IN OUT struct ifreq 
 
 	i4TotalLen = priv_cmd->total_len;
 
-	if (i4TotalLen <= 0) {
+	if (i4TotalLen <= 0 || i4TotalLen > PRIV_CMD_SIZE) {
 		ret = -EINVAL;
 		DBGLOG(REQ, INFO, "%s: i4TotalLen invalid\n", __func__);
 		goto exit;

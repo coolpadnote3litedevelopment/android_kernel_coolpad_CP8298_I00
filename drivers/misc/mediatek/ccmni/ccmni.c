@@ -495,7 +495,7 @@ static int ccmni_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 	case SIOCCCMNICFG:
 		md_id_irat = ifr->ifr_ifru.ifru_ivalue;
 		md_id = ccmni->md_id;
-		if (md_id_irat < 0 && md_id_irat >= MAX_MD_NUM) {
+		if (md_id_irat < 0 || md_id_irat >= MAX_MD_NUM) {
 			CCMNI_ERR_MSG(md_id, "SIOCSCCMNICFG: %s invalid md_id(%d)\n",
 				dev->name, (ifr->ifr_ifru.ifru_ivalue+1));
 			return -EINVAL;

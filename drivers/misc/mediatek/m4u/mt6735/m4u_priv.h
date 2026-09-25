@@ -350,4 +350,7 @@ extern MMP_Event M4U_MMP_Events[M4U_MMP_MAX];
 extern const char *smi_clk_name[];
 #endif
 
+#define MVA_BLOCK_SIZE_ORDER     20	/* 1M */
+#define MVA_MAX_BLOCK_NR        4095	/* 4GB */
+
 #endif

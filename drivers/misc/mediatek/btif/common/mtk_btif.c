@@ -76,8 +76,6 @@ static int _btif_dma_write(p_mtk_btif p_btif,
 
 static unsigned int btif_bbs_wr_direct(p_btif_buf_str p_bbs,
 				unsigned char *p_buf, unsigned int buf_len);
-static unsigned int btif_bbs_read(p_btif_buf_str p_bbs,
-			   unsigned char *p_buf, unsigned int buf_len);
 static unsigned int btif_bbs_write(p_btif_buf_str p_bbs,
 			    unsigned char *p_buf, unsigned int buf_len);
 static void btif_dump_bbs_str(unsigned char *p_str, p_btif_buf_str p_bbs);
@@ -600,54 +598,13 @@ static int btif_file_release(struct inode *pinode, struct file *pfile)
 static ssize_t btif_file_read(struct file *pfile,
 			      char __user *buf, size_t count, loff_t *f_ops)
 {
-	int i_ret = 0;
-	int rd_len = 0;
-
-	BTIF_INFO_FUNC("++\n");
-	down(&rd_mtx);
-	rd_len = btif_bbs_read(&(g_btif[0].btif_buf), rd_buf, sizeof(rd_buf));
-	while (0 == rd_len) {
-		if (pfile->f_flags & O_NONBLOCK)
-			break;
-
-		wait_event(btif_wq, rx_notify_flag != 0);
-		rx_notify_flag = 0;
-		rd_len =
-		    btif_bbs_read(&(g_btif[0].btif_buf), rd_buf,
-				  sizeof(rd_buf));
-	}
-
-	if (0 == rd_len)
-		i_ret = 0;
-	else if ((0 < rd_len) && (0 == copy_to_user(buf, rd_buf, rd_len)))
-		i_ret = rd_len;
-	else
-		i_ret = -EFAULT;
-
-	up(&rd_mtx);
-	BTIF_INFO_FUNC("--, i_ret:%d\n", i_ret);
-	return i_ret;
+	return -EFAULT;
 }
 
 ssize_t btif_file_write(struct file *filp,
 			const char __user *buf, size_t count, loff_t *f_pos)
 {
-	int i_ret = 0;
-	int copy_size = 0;
-
-	copy_size = count > sizeof(wr_buf) ? sizeof(wr_buf) : count;
-
-	BTIF_INFO_FUNC("++\n");
-	down(&wr_mtx);
-	if (copy_from_user(&wr_buf[0], &buf[0], copy_size))
-		i_ret = -EFAULT;
-	else
-		i_ret = btif_send_data(&g_btif[0], wr_buf, copy_size);
-
-	up(&wr_mtx);
-	BTIF_INFO_FUNC("--, i_ret:%d\n", i_ret);
-
-	return i_ret;
+	return -EFAULT;
 }
 #ifdef CONFIG_COMPAT
 long btif_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
@@ -746,38 +703,45 @@ static ssize_t driver_flag_set(struct device_driver *drv,
 	char buf[256];
 	char *p_buf;
 	unsigned long len = count;
-	int x = 0;
-	int y = 0;
-	int z = 0;
+	long x = 0;
+	long y = 0;
+	long z = 0;
+	int result = 0;
 	char *p_token = NULL;
 	char *p_delimiter = " \t";
 
-	BTIF_INFO_FUNC("buffer = %s, count = %zd\n", buffer, count);
 	if (len >= sizeof(buf)) {
 		BTIF_ERR_FUNC("input handling fail!\n");
 		len = sizeof(buf) - 1;
 		return -1;
 	}
 
-	p_buf = (char *)buffer;
+	strncpy(buf, buffer, count);
+	buf[count] = '\0';
+	BTIF_INFO_FUNC("buffer = %s, count = %zd\n", buf, count);
+	p_buf = buf;
 
 	p_token = strsep(&p_buf, p_delimiter);
-	x = NULL != p_token ? kstrtol(p_token, 16, NULL) : 0;
+	if (p_token != NULL) {
+		result = kstrtol(p_token, 16, &x);
+		BTIF_INFO_FUNC("x = 0x%08lx\n\r", x);
+	} else
+		x = 0;
 
 	p_token = strsep(&p_buf, "\t\n ");
 	if (p_token != NULL) {
-		y = kstrtol(p_token, 16, NULL);
-		BTIF_INFO_FUNC("y = 0x%08x\n\r", y);
+		result = kstrtol(p_token, 16, &y);
+		BTIF_INFO_FUNC("y = 0x%08lx\n\r", y);
 	} else
 		y = 0;
 
 	p_token = strsep(&p_buf, "\t\n ");
 	if (p_token != NULL)
-		z = kstrtol(p_token, 16, NULL);
+		result = kstrtol(p_token, 16, &z);
 	else
 		z = 0;
 
-	BTIF_INFO_FUNC("x(0x%08x), y(0x%08x), z(0x%08x)\n\r", x, y, z);
+	BTIF_INFO_FUNC("x(0x%08lx), y(0x%08lx), z(0x%08lx)\n\r", x, y, z);
 
 	switch (x) {
 	case 1:
@@ -838,13 +802,13 @@ static ssize_t driver_flag_set(struct device_driver *drv,
 	case 0x10:
 		y = y > G_MAX_PKG_LEN ? G_MAX_PKG_LEN : y;
 		y = y < 1024 ? 1024 : y;
-		BTIF_INFO_FUNC("g_max_pkg_len is set to %d\n", y);
+		BTIF_INFO_FUNC("g_max_pkg_len is set to %ld\n", y);
 		g_max_pkg_len = y;
 		break;
 	case 0x11:
 		y = y > BTIF_RX_BUFFER_SIZE ? BTIF_RX_BUFFER_SIZE : y;
 		y = y < 1024 ? 1024 : y;
-		BTIF_INFO_FUNC("g_max_pding_data_size is set to %d\n", y);
+		BTIF_INFO_FUNC("g_max_pding_data_size is set to %ld\n", y);
 		g_max_pding_data_size = y;
 		break;
 	default:
@@ -2596,64 +2560,6 @@ unsigned int btif_bbs_write(p_btif_buf_str p_bbs,
 	}
 
 	return wr_len;
-}
-
-unsigned int btif_bbs_read(p_btif_buf_str p_bbs,
-			   unsigned char *p_buf, unsigned int buf_len)
-{
-	unsigned int rd_len = 0;
-	unsigned int ava_len = 0;
-	unsigned int wr_idx = p_bbs->wr_idx;
-
-	ava_len = BBS_COUNT_CUR(p_bbs, wr_idx);
-	if (ava_len >= 4096) {
-		BTIF_WARN_FUNC("ava_len too long, size(%d)\n", ava_len);
-		btif_dump_bbs_str("Rx buffer tooo long", p_bbs);
-	}
-	if (0 != ava_len) {
-		if (buf_len >= ava_len) {
-			rd_len = ava_len;
-			if (wr_idx >= (p_bbs)->rd_idx) {
-				memcpy(p_buf, BBS_PTR(p_bbs,
-						      p_bbs->rd_idx),
-				       ava_len);
-				(p_bbs)->rd_idx = wr_idx;
-			} else {
-				unsigned int tail_len = BBS_SIZE(p_bbs) -
-				    (p_bbs)->rd_idx;
-				memcpy(p_buf, BBS_PTR(p_bbs,
-						      p_bbs->rd_idx),
-				       tail_len);
-				memcpy(p_buf + tail_len, BBS_PTR(p_bbs,
-								 0), ava_len - tail_len);
-				(p_bbs)->rd_idx = wr_idx;
-			}
-		} else {
-			rd_len = buf_len;
-			if (wr_idx >= (p_bbs)->rd_idx) {
-				memcpy(p_buf, BBS_PTR(p_bbs,
-						      p_bbs->rd_idx),
-				       rd_len);
-				(p_bbs)->rd_idx = (p_bbs)->rd_idx + rd_len;
-			} else {
-				unsigned int tail_len = BBS_SIZE(p_bbs) -
-				    (p_bbs)->rd_idx;
-				if (tail_len >= rd_len) {
-					memcpy(p_buf, BBS_PTR(p_bbs, p_bbs->rd_idx),
-					       rd_len);
-					(p_bbs)->rd_idx =
-					    ((p_bbs)->rd_idx + rd_len) & (BBS_MASK(p_bbs));
-				} else {
-					memcpy(p_buf, BBS_PTR(p_bbs, p_bbs->rd_idx), tail_len);
-					memcpy(p_buf + tail_len,
-					       (p_bbs)->p_buf, rd_len - tail_len);
-					(p_bbs)->rd_idx = rd_len - tail_len;
-				}
-			}
-		}
-	}
-	mb();
-	return rd_len;
 }
 
 unsigned int btif_bbs_wr_direct(p_btif_buf_str p_bbs,

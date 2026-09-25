@@ -570,6 +570,8 @@ static void TdlsCmdTestDataSend(P_GLUE_INFO_T prGlueInfo, UINT_8 *prInBuf, UINT_
 	prAdapter = prGlueInfo->prAdapter;
 
 	/* parse arguments */
+	kalMemZero(MAC, sizeof(MAC));
+
 	CmdStringMacParse(prInBuf, &prInBuf, &u4InBufLen, MAC);
 	ucTxStatus = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 
@@ -650,6 +652,8 @@ static void TdlsCmdTestDiscoveryReqRecv(GLUE_INFO_T *prGlueInfo, UINT_8 *prInBuf
 	UINT_8 ucDialogToken, aucPeerMac[6], aucBSSID[6], aucZeroMac[6];
 
 	/* parse arguments */
+	kalMemZero(aucPeerMac, sizeof(aucPeerMac));
+
 	ucDialogToken = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	CmdStringMacParse(prInBuf, &prInBuf, &u4InBufLen, aucPeerMac);
 
@@ -1036,6 +1040,8 @@ static void TdlsCmdTestSetupConfirmRecv(GLUE_INFO_T *prGlueInfo, UINT_8 *prInBuf
 	UINT_8 ucDialogToken, ucStatusCode, aucPeerMac[6];
 
 	/* parse arguments */
+	kalMemZero(aucPeerMac, sizeof(aucPeerMac));
+
 	ucDialogToken = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	ucStatusCode = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	CmdStringMacParse(prInBuf, &prInBuf, &u4InBufLen, aucPeerMac);
@@ -1145,6 +1151,8 @@ static void TdlsCmdTestSetupReqRecv(GLUE_INFO_T *prGlueInfo, UINT_8 *prInBuf, UI
 	UINT_16 u2CapInfo;
 
 	/* parse arguments */
+	kalMemZero(aucPeerMac, sizeof(aucPeerMac));
+
 	ucDialogToken = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	CmdStringMacParse(prInBuf, &prInBuf, &u4InBufLen, aucPeerMac);
 
@@ -1276,6 +1284,8 @@ static void TdlsCmdTestSetupRspRecv(GLUE_INFO_T *prGlueInfo, UINT_8 *prInBuf, UI
 	UINT_16 u2CapInfo;
 
 	/* parse arguments */
+	kalMemZero(aucPeerMac, sizeof(aucPeerMac));
+
 	ucDialogToken = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	ucStatusCode = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	CmdStringMacParse(prInBuf, &prInBuf, &u4InBufLen, aucPeerMac);
@@ -1448,6 +1458,8 @@ static void TdlsCmdTestTearDownRecv(GLUE_INFO_T *prGlueInfo, UINT_8 *prInBuf, UI
 	UINT_32 u4BufLen;
 
 	/* parse arguments */
+	kalMemZero(aucPeerMac, sizeof(aucPeerMac));
+
 	fgIsInitiator = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	ucReasonCode = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);
 	CmdStringMacParse(prInBuf, &prInBuf, &u4InBufLen, aucPeerMac);
@@ -1599,7 +1611,7 @@ static void TdlsCmdTestTxTdlsFrame(P_GLUE_INFO_T prGlueInfo, UINT_8 *prInBuf, UI
 {
 	PARAM_CUSTOM_TDLS_CMD_STRUCT_T rCmd;
 	UINT32 u4Subcmd;
-	UINT_32 u4BufLen;
+	UINT_32 u4BufLen = 0;
 
 	/* parse sub-command */
 	u4Subcmd = CmdStringDecParse(prInBuf, &prInBuf, &u4InBufLen);

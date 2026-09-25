@@ -206,27 +206,50 @@ static ssize_t atf_log_write(struct file *file, const char __user *buf, size_t c
 
 static ssize_t do_read_log_to_usr(char __user *buf, size_t count)
 {
-	size_t len;
-	size_t least;
+	size_t copy_len = 0;
+	size_t right = 0;
 
-	write_index = pos_to_index(atf_buf_vir_ctl->info.atf_write_pos);
-	read_index = pos_to_index(atf_buf_vir_ctl->info.atf_read_pos);
-	least = (write_index + atf_buf_len - read_index) % atf_buf_len;
-	if (count > least)
-		count = least;
-	len = min(count, (size_t)(atf_log_len - read_index));
-	if (count == len) {
-		if (copy_to_user(buf, atf_log_vir_addr + read_index, count))
+	unsigned int local_write_index = 0;
+	unsigned int local_read_index = 0;
+
+	local_write_index = pos_to_index(atf_buf_vir_ctl->info.atf_write_pos);
+	local_read_index = pos_to_index(atf_buf_vir_ctl->info.atf_read_pos);
+
+	/* check copy length */
+	copy_len = (local_write_index + atf_log_len - local_read_index) % atf_log_len;
+
+	/* if copy length < count, just copy the "copy length" */
+	if (count > copy_len)
+		count = copy_len;
+
+	if (local_write_index > local_read_index) {
+		/* write (right) - read (left) */
+		/* --------R-------W-----------*/
+		if (copy_to_user(buf, atf_log_vir_addr + local_read_index, count))
 			return -EFAULT;
 	} else {
-		size_t right = atf_log_len - read_index;
+		/* turn around to the head */
+		/* --------W-------R-----------*/
+		right = atf_log_len - local_read_index;
 
-		if (copy_to_user(buf, atf_log_vir_addr + read_index, right))
-			return -EFAULT;
-		if (copy_to_user(buf, atf_log_vir_addr, count - right))
-			return -EFAULT;
+		/* check buf space is enough to copy */
+		if (count > right) {
+			/* if space is enough to copy */
+			if (copy_to_user(buf, atf_log_vir_addr + local_read_index, right))
+				return -EFAULT;
+			if (copy_to_user((buf + right), atf_log_vir_addr, count - right))
+				return -EFAULT;
+		} else {
+			/* if count is only enough to copy right or count, just copy right or count */
+			if (copy_to_user(buf, atf_log_vir_addr + local_read_index, count))
+				return -EFAULT;
+		}
 	}
-	read_index = (read_index + count) % atf_log_len;
+
+	/* update the read pos */
+	local_read_index = (local_read_index + count) % atf_log_len;
+	atf_buf_vir_ctl->info.atf_read_pos = index_to_pos(local_read_index);
+
 	return count;
 }
 
@@ -302,7 +325,6 @@ start:
 		goto start;
 	}
 	ret = do_read_log_to_usr(buf, count);
-	atf_buf_vir_ctl->info.atf_read_pos = index_to_pos(read_index);
 	atf_buf_vir_ctl->info.atf_read_seq += ret;
 	atf_log_unlock();
 	/* pr_notice("atf_log_read: return %d, idx: %lu, readpos: %p, writepos: %p\n",

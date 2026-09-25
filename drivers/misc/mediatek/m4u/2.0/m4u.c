@@ -2086,6 +2086,15 @@ static long MTK_M4U_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 			M4UMSG("m4u_cache_sync,copy_from_user failed:%d\n", ret);
 			return -EFAULT;
 		}
+		if (m4u_cache_data.port < 0 || m4u_cache_data.port >= M4U_PORT_UNKNOWN) {
+			M4UMSG("from user port id is invald,%d\n", m4u_cache_data.port);
+			return -EFAULT;
+		}
+		if (m4u_cache_data.mva < 0 ||
+			(m4u_cache_data.mva >> MVA_BLOCK_SIZE_ORDER) > MVA_MAX_BLOCK_NR) {
+				M4UMSG("MTK_M4U_T_CACHE_SYNC, mva %d is invalid\n", m4u_cache_data.mva);
+				return -EFAULT;
+		}
 
 		ret = m4u_cache_sync(client, m4u_cache_data.port, m4u_cache_data.va,
 				     m4u_cache_data.size, m4u_cache_data.mva,
@@ -2098,6 +2107,15 @@ static long MTK_M4U_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 		if (ret) {
 			M4UMSG("m4u dma map/unmap area,copy_from_user failed:%d\n", ret);
 			return -EFAULT;
+		}
+		if (m4u_dma_data.port < 0 || m4u_dma_data.port >= M4U_PORT_UNKNOWN) {
+			M4UMSG("from user port id is invald,%d\n", m4u_dma_data.port);
+			return -EFAULT;
+		}
+		if (m4u_dma_data.mva < 0 ||
+			(m4u_dma_data.mva >> MVA_BLOCK_SIZE_ORDER) > MVA_MAX_BLOCK_NR) {
+				M4UMSG("MTK_M4U_T_CACHE_SYNC, mva %d is invalid\n", m4u_dma_data.mva);
+				return -EFAULT;
 		}
 
 		ret = m4u_dma_op(client, m4u_dma_data.port, m4u_dma_data.va,

@@ -56,7 +56,6 @@ long sec_core_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int err = 0;
 	int ret = 0;
-	unsigned int cipher_len = 0;
 	unsigned int rid[4];
 	META_CONTEXT meta_ctx;
 
@@ -143,53 +142,6 @@ long sec_core_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				     HACC_USER2, FALSE);
 		meta_ctx.ret = SEC_OK;
 		ret = osal_copy_to_user((void __user *)arg, (void *)&meta_ctx, sizeof(meta_ctx));
-		break;
-
-		/* ---------------------------------- */
-		/* HEVC EOP                           */
-		/* ---------------------------------- */
-	case SEC_HEVC_EOP:
-		pr_debug("[%s] CMD - SEC_HEVC_EOP\n", MOD);
-		if (osal_copy_from_user((void *)(&hevc_blk), (void __user *)arg, sizeof(HEVC_BLK)))
-			return -EFAULT;
-
-		if ((hevc_blk.len % CI_BLK_SIZE) == 0) {
-			cipher_len = hevc_blk.len;
-		} else if ((hevc_blk.len % CI_BLK_SIZE) > 0) {
-			cipher_len = CI_BLK_ALIGN(hevc_blk.len) - CI_BLK_SIZE;
-			if (cipher_len == 0) {
-				pr_debug("[%s] less than one ci_blk, no need to do eop", MOD);
-				break;
-			}
-		}
-		masp_hal_sp_hacc_enc((unsigned char *)(&hevc_blk.buf), cipher_len, TRUE, HACC_USER4,
-				     FALSE);
-
-		ret = osal_copy_to_user((void __user *)arg, (void *)(&hevc_blk), sizeof(HEVC_BLK));
-		break;
-
-		/* ---------------------------------- */
-		/* HEVC DOP                           */
-		/* ---------------------------------- */
-	case SEC_HEVC_DOP:
-		pr_debug("[%s] CMD - SEC_HEVC_DOP\n", MOD);
-		if (osal_copy_from_user((void *)(&hevc_blk), (void __user *)arg, sizeof(HEVC_BLK)))
-			return -EFAULT;
-
-		if ((hevc_blk.len % CI_BLK_SIZE) == 0)
-			cipher_len = hevc_blk.len;
-		else if ((hevc_blk.len % CI_BLK_SIZE) > 0) {
-			cipher_len = CI_BLK_ALIGN(hevc_blk.len) - CI_BLK_SIZE;
-			if (cipher_len == 0) {
-				pr_debug("[%s] less than one ci_blk, no need to do dop", MOD);
-				break;
-			}
-		}
-
-		masp_hal_sp_hacc_dec((unsigned char *)(&hevc_blk.buf), cipher_len, TRUE, HACC_USER4,
-				     FALSE);
-
-		ret = osal_copy_to_user((void __user *)arg, (void *)(&hevc_blk), sizeof(HEVC_BLK));
 		break;
 
 		/* ---------------------------------- */

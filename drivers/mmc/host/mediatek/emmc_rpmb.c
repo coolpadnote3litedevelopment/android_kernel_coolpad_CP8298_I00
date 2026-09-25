@@ -1259,19 +1259,51 @@ static int emmc_rpmb_open(struct inode *inode, struct file *file)
 static long emmc_rpmb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int err = 0;
-	struct mmc_card *card = mtk_msdc_host[0]->mmc->card;
+	struct mmc_card *card;
 	struct rpmb_ioc_param param;
 	int ret;
+	unsigned char *u_key, *u_data, *u_hmac;
 #if (defined(CONFIG_MICROTRUST_TZ_DRIVER))
 	struct rpmb_infor rpmbinfor;
 #endif
 
 	MSG(INFO, "%s, !!!!!!!!!!!!\n", __func__);
 
+	if (!mtk_msdc_host[0] || !mtk_msdc_host[0]->mmc || !mtk_msdc_host[0]->mmc->card)
+		return -1;
+
+	card = mtk_msdc_host[0]->mmc->card;
+
 	err = copy_from_user(&param, (void *)arg, sizeof(param));
-	if (err < 0) {
+	if (err != 0) {
 		MSG(ERR, "%s, err=%x\n", __func__, err);
 		return -1;
+	}
+	/* RPMB MAC is 32bytes, max data length isn't more than 8K bytes */
+	if (!param.key || !param.data || !param.hmac || param.hmac_len != 32
+		|| param.data_len > 8*1024)
+		return -1;
+
+	/* temp storage userspace pointer */
+	u_key = param.key;
+	u_data = param.data;
+	u_hmac = param.hmac;
+
+	param.key = kmalloc(32, GFP_KERNEL); /* RPMB key is 32bytes */
+	param.data = kmalloc(param.data_len, GFP_KERNEL);
+	param.hmac = kmalloc(param.hmac_len, GFP_KERNEL);
+
+	if (!param.key || !param.data || !param.hmac) {
+		ret = -1;
+		goto end;
+	}
+
+	if (copy_from_user(param.key, u_key, 32) ||
+	    copy_from_user(param.data, u_data, param.data_len) ||
+	    copy_from_user(param.hmac, u_hmac, param.hmac_len)) {
+		MSG(ERR, "%s, copy_from_user failed\n", __func__);
+		ret = -1;
+		goto end;
 	}
 
 #if (defined(CONFIG_MICROTRUST_TZ_DRIVER))
@@ -1320,10 +1352,11 @@ static long emmc_rpmb_ioctl(struct file *file, unsigned int cmd, unsigned long a
 
 		ret = emmc_rpmb_req_read_data(card, &param);
 
-		err = copy_to_user((void *)arg, &param, sizeof(param));
-		if (err < 0) {
+		err = copy_to_user(u_data, param.data, param.data_len);
+		if (err != 0) {
 			MSG(ERR, "%s, err=%x\n", __func__, err);
-			return -1;
+			ret = -1;
+			goto end;
 		}
 
 		break;
@@ -1343,8 +1376,13 @@ static long emmc_rpmb_ioctl(struct file *file, unsigned int cmd, unsigned long a
 #endif
 	default:
 		MSG(ERR, "%s, wrong ioctl code (%d)!!!\n", __func__, cmd);
-		return -ENOTTY;
+		ret = -ENOTTY;
 	}
+
+end:
+	kfree(param.key);
+	kfree(param.data);
+	kfree(param.hmac);
 
 	return ret;
 }

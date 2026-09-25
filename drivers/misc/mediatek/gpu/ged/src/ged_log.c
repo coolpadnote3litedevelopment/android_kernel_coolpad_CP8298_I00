@@ -205,14 +205,18 @@ static GED_ERROR __ged_log_buf_vprint(GED_LOG_BUF *psGEDLogBuf, const char *fmt,
     buf_n = psGEDLogBuf->i32BufferSize - psGEDLogBuf->i32BufferCurrent;
     len = vsnprintf(psGEDLogBuf->pcBuffer + psGEDLogBuf->i32BufferCurrent, buf_n, fmt, args);
 
+	/* if 'len' >= 'buf_n', the resulting string is truncated.
+	 * let 'len' be a safe number
+	 */
+	if (len > buf_n)
+		len = buf_n;
+
 	if (psGEDLogBuf->pcBuffer[psGEDLogBuf->i32BufferCurrent + len - 1] == '\n')
 	{
 		/* remove tailing newline */
 		psGEDLogBuf->pcBuffer[psGEDLogBuf->i32BufferCurrent + len - 1] = 0;
 		len -= 1;
 	}
-
-    if (len > buf_n) len = buf_n;
 
     buf_n -= len;
 
@@ -279,7 +283,7 @@ static int __ged_log_buf_write(GED_LOG_BUF *psGEDLogBuf, const char __user *pszB
 
     buf[cnt] = 0;
 
-    __ged_log_buf_print(psGEDLogBuf, buf);
+    __ged_log_buf_print(psGEDLogBuf, "%s", buf);
 
     return cnt;
 }
@@ -769,12 +773,10 @@ GED_ERROR ged_log_buf_print(GED_LOG_BUF_HANDLE hLogBuf, const char *fmt, ...)
 {
     va_list args;
     GED_ERROR err;
-    GED_LOG_BUF *psGEDLogBuf;
-    
-    if (hLogBuf)
-    {
-        psGEDLogBuf = ged_log_buf_from_handle(hLogBuf);
+    GED_LOG_BUF *psGEDLogBuf = ged_log_buf_from_handle(hLogBuf);
 
+    if (psGEDLogBuf)
+    {
         va_start(args, fmt);
         err = __ged_log_buf_vprint(psGEDLogBuf, fmt, args, psGEDLogBuf->attrs);
         va_end(args);
@@ -786,12 +788,10 @@ GED_ERROR ged_log_buf_print2(GED_LOG_BUF_HANDLE hLogBuf, int i32LogAttrs, const 
 {
     va_list args;
     GED_ERROR err;
-    GED_LOG_BUF *psGEDLogBuf;
-    
-    if (hLogBuf)
-    {
-        psGEDLogBuf = ged_log_buf_from_handle(hLogBuf);
+    GED_LOG_BUF *psGEDLogBuf = ged_log_buf_from_handle(hLogBuf);
 
+    if (psGEDLogBuf)
+    {
         /* clear reserved attrs */
         i32LogAttrs &= ~0xff; 
 

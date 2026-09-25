@@ -76,6 +76,8 @@ static struct cdev *FDVT_cdev;
 static struct class *FDVT_class;
 static wait_queue_head_t g_MT6573FDVTWQ;
 static u32 g_u4MT6573FDVTIRQ = 0 , g_u4MT6573FDVTIRQMSK = 0x00000001;
+static DEFINE_SPINLOCK(g_spinLock);
+static unsigned int g_drvOpened;
 
 static u8 *pBuff;
 static u8 *pread_buf;
@@ -442,6 +444,11 @@ static int MT6573FDVT_SetRegHW(MT6573FDVTRegIO *a_pstCfg)
 
 	pREGIO = (MT6573FDVTRegIO *)a_pstCfg;
 
+	if (pREGIO->u4Count > MT6573FDVT_DBUFFREGCNT) {
+		LOG_DBG("Buffer Size Exceeded!\n");
+		return -EFAULT;
+	}
+
 	if (copy_from_user((void *)pMT6573FDVTWRBuff.u4Addr, (void *) pREGIO->pAddr, pREGIO->u4Count * sizeof(u32))) {
 		LOG_DBG("ioctl copy from user failed\n");
 		return -EFAULT;
@@ -473,13 +480,19 @@ static int MT6573FDVT_SetRegHW(MT6573FDVTRegIO *a_pstCfg)
 static int MT6573FDVT_ReadRegHW(MT6573FDVTRegIO *a_pstCfg)
 {
 	int ret = 0;
-	int size = a_pstCfg->u4Count * 4;
-	int i;
+	int i = 0;
 
-	if (size > buf_size)
-		LOG_DBG("size too big\n");
+	if (a_pstCfg == NULL) {
+		LOG_DBG("Null input argrment\n");
+		return -EINVAL;
+	}
 
-	if (copy_from_user(pMT6573FDVTRDBuff.u4Addr,  a_pstCfg->pAddr, size) != 0) {
+	if (a_pstCfg->u4Count > MT6573FDVT_DBUFFREGCNT) {
+		LOG_DBG("Buffer Size Exceeded!\n");
+		return -EFAULT;
+	}
+
+	if (copy_from_user(pMT6573FDVTRDBuff.u4Addr,  a_pstCfg->pAddr, a_pstCfg->u4Count * sizeof(u32)) != 0) {
 		LOG_DBG("copy_from_user failed\n");
 		ret = -EFAULT;
 		goto mt_FDVT_read_reg_exit;
@@ -495,7 +508,7 @@ static int MT6573FDVT_ReadRegHW(MT6573FDVTRegIO *a_pstCfg)
 			goto mt_FDVT_read_reg_exit;
 		}
 	}
-	if (copy_to_user(a_pstCfg->pData, pMT6573FDVTRDBuff.u4Data, size) != 0) {
+	if (copy_to_user(a_pstCfg->pData, pMT6573FDVTRDBuff.u4Data, a_pstCfg->u4Count * sizeof(u32)) != 0) {
 		LOG_DBG("copy_to_user failed\n");
 		ret = -EFAULT;
 		goto mt_FDVT_read_reg_exit;
@@ -548,6 +561,11 @@ static irqreturn_t MT6573FDVT_irq(int irq, void *dev_id)
 static long FDVT_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int ret = 0;
+
+	if (_IOC_SIZE(cmd) > buf_size) {
+		LOG_DBG("Buffer Size Exceeded!\n");
+		return -EFAULT;
+	}
 
 	if (_IOC_NONE != _IOC_DIR(cmd)) {
 		/* IO write */
@@ -765,6 +783,16 @@ static int FDVT_open(struct inode *inode, struct file *file)
 	INT32 ret = 0;
 
 	LOG_DBG("[FDVT_DEBUG] FDVT_open\n");
+
+	spin_lock(&g_spinLock);
+	if (g_drvOpened) {
+		spin_unlock(&g_spinLock);
+		LOG_DBG("Opened, return -EBUSY\n");
+		return -EBUSY;
+	}
+	g_drvOpened = 1;
+	spin_unlock(&g_spinLock);
+
 	mt_fdvt_clk_ctrl(1); /* ISP help enable */
 	if (pBuff != NULL)
 		LOG_DBG("pBuff is not null\n");
@@ -776,6 +804,7 @@ static int FDVT_open(struct inode *inode, struct file *file)
 		LOG_DBG(" ioctl allocate mem failed\n");
 		ret = -ENOMEM;
 	} else {
+		memset(pBuff, 0, buf_size);
 		LOG_DBG(" ioctl allocate mem ok\n");
 	}
 
@@ -825,6 +854,11 @@ static int FDVT_release(struct inode *inode, struct file *file)
 	g_u4MT6573FDVTIRQ = ioread32((void *)FDVT_INT);
 	mb();
 	mt_fdvt_clk_ctrl(0); /* ISP help disable */
+
+	spin_lock(&g_spinLock);
+	g_drvOpened = 0;
+	spin_unlock(&g_spinLock);
+
 	return 0;
 }
 

@@ -3511,7 +3511,7 @@ static ssize_t cmdq_write_test_proc_config(struct file *file,
 	do {
 		/* copy user input */
 		len = (count < (sizeof(desc) - 1)) ? count : (sizeof(desc) - 1);
-		if (copy_from_user(desc, userBuf, count)) {
+		if (copy_from_user(desc, userBuf, len)) {
 			CMDQ_ERR("TEST_CONFIG: data fail\n");
 			break;
 		}

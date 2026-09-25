@@ -282,7 +282,7 @@ static fm_u16 mt6627_get_chipid(void)
  */
 static fm_s32 mt6627_SetAntennaType(fm_s32 type)
 {
-	fm_u16 dataRead;
+	fm_u16 dataRead = 0;
 
 	WCN_DBG(FM_DBG | CHIP, "set ana to %s\n", type ? "short" : "long");
 	mt6627_read(FM_MAIN_CG2_CTRL, &dataRead);
@@ -299,7 +299,7 @@ static fm_s32 mt6627_SetAntennaType(fm_s32 type)
 
 static fm_s32 mt6627_GetAntennaType(void)
 {
-	fm_u16 dataRead;
+	fm_u16 dataRead = 0;
 
 	mt6627_read(FM_MAIN_CG2_CTRL, &dataRead);
 	WCN_DBG(FM_DBG | CHIP, "get ana type: %s\n", (dataRead & ANTENNA_TYPE) ? "short" : "long");
@@ -313,7 +313,7 @@ static fm_s32 mt6627_GetAntennaType(void)
 static fm_s32 mt6627_Mute(fm_bool mute)
 {
 	fm_s32 ret = 0;
-	fm_u16 dataRead;
+	fm_u16 dataRead = 0;
 
 	WCN_DBG(FM_DBG | CHIP, "set %s\n", mute ? "mute" : "unmute");
 	/* mt6627_read(FM_MAIN_CTRL, &dataRead); */
@@ -426,7 +426,7 @@ static fm_s32 mt6627_RampDown(void)
 
 static fm_s32 mt6627_get_rom_version(void)
 {
-	fm_u16 tmp;
+	fm_u16 tmp = 0;
 	fm_s32 ret;
 
 	/* DSP rom code version request enable --- set 0x61 b15=1 */
@@ -824,7 +824,7 @@ static fm_s32 mt6627_PowerDown(void)
 {
 	fm_s32 ret = 0;
 	fm_u16 pkt_size;
-	fm_u16 dataRead;
+	fm_u16 dataRead = 0;
 	fm_u32 tem;
 	fm_u32 host_reg = 0;
 
@@ -1173,7 +1173,7 @@ static fm_s32 mt6627_full_cqi_get(fm_s32 min_freq, fm_s32 max_freq, fm_s32 space
  */
 static fm_s32 mt6627_GetCurRSSI(fm_s32 *pRSSI)
 {
-	fm_u16 tmp_reg;
+	fm_u16 tmp_reg = 0;
 
 	mt6627_read(FM_RSSI_IND, &tmp_reg);
 	tmp_reg = tmp_reg & 0x03ff;
@@ -1218,7 +1218,7 @@ static fm_s32 mt6627_SetVol(fm_u8 vol)
 static fm_s32 mt6627_GetVol(fm_u8 *pVol)
 {
 	int ret = 0;
-	fm_u16 tmp;
+	fm_u16 tmp = 0;
 	fm_s32 i;
 
 	if (pVol == NULL) {
@@ -1247,7 +1247,7 @@ static fm_s32 mt6627_GetVol(fm_u8 *pVol)
 static fm_s32 mt6627_dump_reg(void)
 {
 	fm_s32 i;
-	fm_u16 TmpReg;
+	fm_u16 TmpReg = 0;
 
 	for (i = 0; i < 0xff; i++) {
 		mt6627_read(i, &TmpReg);
@@ -1260,7 +1260,7 @@ static fm_s32 mt6627_dump_reg(void)
 static fm_bool mt6627_GetMonoStereo(fm_u16 *pMonoStereo)
 {
 #define FM_BF_STEREO 0x1000
-	fm_u16 TmpReg;
+	fm_u16 TmpReg = 0;
 
 	if (pMonoStereo) {
 		mt6627_read(FM_RSSI_IND, &TmpReg);
@@ -1292,7 +1292,7 @@ static fm_s32 mt6627_SetMonoStereo(fm_s32 MonoStereo)
 
 static fm_s32 mt6627_GetCapArray(fm_s32 *ca)
 {
-	fm_u16 dataRead;
+	fm_u16 dataRead = 0;
 	fm_u16 tmp = 0;
 
 	if (ca == NULL) {
@@ -1317,7 +1317,7 @@ static fm_s32 mt6627_GetCapArray(fm_s32 *ca)
  */
 static fm_bool mt6627_GetCurPamd(fm_u16 *pPamdLevl)
 {
-	fm_u16 tmp_reg;
+	fm_u16 tmp_reg = 0;
 	fm_u16 dBvalue, valid_cnt = 0;
 	int i, total = 0;
 

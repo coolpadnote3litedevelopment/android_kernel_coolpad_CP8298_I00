@@ -319,6 +319,7 @@ INT32 wcn_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 buf, INT32 len)
 			pDtr = osal_strchr(pStr, '-');
 			if (NULL != pDtr) {
 				tmp = pDtr - pStr;
+				tmp = (tmp > STP_CORE_DUMP_INFO_SZ) ? STP_CORE_DUMP_INFO_SZ : tmp;
 				osal_memcpy(&dmp->info[osal_strlen(INFO_HEAD)], buf, tmp);
 				dmp->info[osal_strlen(dmp->info) + 1] = '\0';
 			} else {
@@ -1099,6 +1100,8 @@ int stp_dbg_dmp_out(MTKSTP_DBG_T *stp_dbg, char *buf, int *len)
 	spin_lock_irqsave(&(stp_dbg->logsys->lock), flags);
 
 	if (stp_dbg->logsys->size > 0) {
+		if (stp_dbg->logsys->queue[stp_dbg->logsys->out].len >= STP_DBG_LOG_ENTRY_SZ)
+			stp_dbg->logsys->queue[stp_dbg->logsys->out].len = STP_DBG_LOG_ENTRY_SZ - 1;
 		memcpy(buf, &(stp_dbg->logsys->queue[stp_dbg->logsys->out].buffer[0]),
 		       stp_dbg->logsys->queue[stp_dbg->logsys->out].len);
 
@@ -1337,14 +1340,17 @@ UINT8 *_stp_dbg_id_to_task(UINT32 id)
 
 INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 {
+#define TEMPBUF_LEN 64
+
 	char *pStr = NULL;
 	char *pDtr = NULL;
 	char *pTemp = NULL;
 	char *pTemp2 = NULL;
-	char tempBuf[64] = { 0 };
+	char tempBuf[TEMPBUF_LEN] = { 0 };
 	UINT32 len = 0;
 	long res;
 	INT32 ret;
+	INT32 remain_array_len = 0;
 
 	PUINT8 parser_sub_string[] = {
 		"<ASSERT> ",
@@ -1376,17 +1382,40 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 			STP_DBG_ERR_FUNC("parser str is NULL,substring(%s)\n", parser_sub_string[type]);
 			return -3;
 		}
+
+		if (NULL == pTemp) {
+			STP_DBG_ERR_FUNC("delimiter( ) is not found,substring(%s)\n",
+					 parser_sub_string[type]);
+			return -4;
+		}
+
 		len = pTemp - pDtr;
 		osal_memcpy(&g_stp_dbg_cpupcr->assert_info[0], "assert@", osal_strlen("assert@"));
 		osal_memcpy(&g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@")], pDtr, len);
 		g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@") + len] = '_';
 
 		pTemp = osal_strchr(pDtr, '#');
+		if (pTemp == NULL) {
+			STP_DBG_ERR_FUNC("parser '#' is not find\n");
+			return -5;
+		}
 		pTemp += 1;
 
 		pTemp2 = osal_strchr(pTemp, ' ');
-		osal_memcpy(&g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@") + len + 1], pTemp, pTemp2 - pTemp);
-		g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@") + len + 1 + pTemp2 - pTemp] = '\0';
+		if (pTemp2 == NULL) {
+			STP_DBG_ERR_FUNC("parser ' ' is not find\n");
+			pTemp2 = pTemp + 1;
+		}
+		remain_array_len = osal_array_size(g_stp_dbg_cpupcr->assert_info) - (osal_strlen("assert@") + len + 1);
+		if (remain_array_len - 1 > pTemp2 - pTemp) {
+			osal_memcpy(&g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@") + len + 1], pTemp,
+					pTemp2 - pTemp);
+			g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@") + len + 1 + pTemp2 - pTemp] = '\0';
+		} else {
+			osal_memcpy(&g_stp_dbg_cpupcr->assert_info[osal_strlen("assert@") + len + 1], pTemp,
+					remain_array_len - 1);
+			g_stp_dbg_cpupcr->assert_info[STP_ASSERT_INFO_SIZE - 1] = '\0';
+		}
 		STP_DBG_INFO_FUNC("assert info:%s\n", &g_stp_dbg_cpupcr->assert_info[0]);
 		break;
 	case STP_DBG_FW_TASK_ID:
@@ -1398,7 +1427,15 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 			STP_DBG_ERR_FUNC("parser str is NULL,substring(%s)\n", parser_sub_string[type]);
 			return -3;
 		}
+
+		if (NULL == pTemp) {
+			STP_DBG_ERR_FUNC("delimiter( ) is not found,substring(%s)\n",
+					 parser_sub_string[type]);
+			return -4;
+		}
+
 		len = pTemp - pDtr;
+		len = (len >= TEMPBUF_LEN) ? TEMPBUF_LEN - 1 : len;
 		osal_memcpy(&tempBuf[0], pDtr, len);
 		tempBuf[len] = '\0';
 		ret = osal_strtol(tempBuf, 16, &res);
@@ -1412,14 +1449,24 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 		break;
 	case STP_DBG_FW_ISR:
 		pDtr = osal_strstr(pStr, parser_sub_string[type]);
+
 		if (NULL != pDtr) {
 			pDtr += osal_strlen(parser_sub_string[type]);
 			pTemp = osal_strchr(pDtr, ',');
 		} else {
-			STP_DBG_ERR_FUNC("parser str is NULL,substring(%s)\n", parser_sub_string[type]);
+			STP_DBG_ERR_FUNC("parser str is NULL,substring(%s)\n",
+					parser_sub_string[type]);
 			return -3;
 		}
+
+		if (NULL == pTemp) {
+			STP_DBG_ERR_FUNC("delimiter(,) is not found,substring(%s)\n",
+					 parser_sub_string[type]);
+			return -4;
+		}
+
 		len = pTemp - pDtr;
+		len = (len >= TEMPBUF_LEN) ? TEMPBUF_LEN - 1 : len;
 		osal_memcpy(&tempBuf[0], pDtr, len);
 		tempBuf[len] = '\0';
 		ret = osal_strtol(tempBuf, 16, &res);
@@ -1440,7 +1487,15 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 			STP_DBG_ERR_FUNC("parser str is NULL,substring(%s)\n", parser_sub_string[type]);
 			return -3;
 		}
+
+		if (NULL == pTemp) {
+			STP_DBG_ERR_FUNC("delimiter(,) is not found,substring(%s)\n",
+					 parser_sub_string[type]);
+			return -4;
+		}
+
 		len = pTemp - pDtr;
+		len = (len >= TEMPBUF_LEN) ? TEMPBUF_LEN - 1 : len;
 		osal_memcpy(&tempBuf[0], pDtr, len);
 		tempBuf[len] = '\0';
 		ret = osal_strtol(tempBuf, 16, &res);
@@ -1461,12 +1516,21 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 			STP_DBG_ERR_FUNC("parser str is NULL,substring(%s)\n", parser_sub_string[type]);
 			return -3;
 		}
+
+		if (NULL == pTemp) {
+			STP_DBG_ERR_FUNC("delimiter(,) is not found,substring(%s)\n",
+					 parser_sub_string[type]);
+			return -4;
+		}
+
 		len = pTemp - pDtr;
+		len = (len >= TEMPBUF_LEN) ? TEMPBUF_LEN - 1 : len;
 		osal_memcpy(&tempBuf[0], pDtr, len);
 		tempBuf[len] = '\0';
 
 		if (0 == osal_memcmp(tempBuf, "*", len))
-			osal_memcpy(&g_stp_dbg_cpupcr->assert_type[0], "general assert", osal_strlen("general assert"));
+			osal_memcpy(&g_stp_dbg_cpupcr->assert_type[0], "general assert",
+					osal_strlen("general assert"));
 		if (0 == osal_memcmp(tempBuf, "Watch Dog Timeout", len))
 			osal_memcpy(&g_stp_dbg_cpupcr->assert_type[0], "wdt", osal_strlen("wdt"));
 		if (0 == osal_memcmp(tempBuf, "RB_FULL", osal_strlen("RB_FULL"))) {
@@ -1478,9 +1542,10 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 				pTemp = osal_strchr(pDtr, ')');
 			} else {
 				STP_DBG_ERR_FUNC("parser str is NULL,substring(RB_FULL()\n");
-				return -4;
+				return -5;
 			}
 			len = pTemp - pDtr;
+			len = (len >= TEMPBUF_LEN) ? TEMPBUF_LEN - 1 : len;
 			osal_memcpy(&tempBuf[0], pDtr, len);
 			tempBuf[len] = '\0';
 			ret = osal_strtol(tempBuf, 16, &res);
@@ -1502,7 +1567,6 @@ INT32 _stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO_PARSER_TYPE type)
 
 	return 0;
 }
-
 P_STP_DBG_CPUPCR_T stp_dbg_cpupcr_init(VOID)
 {
 	P_STP_DBG_CPUPCR_T pSdCpupcr = NULL;

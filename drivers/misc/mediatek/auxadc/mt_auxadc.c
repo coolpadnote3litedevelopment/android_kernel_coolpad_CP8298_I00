@@ -1431,10 +1431,12 @@ static int dbug_thread(void *unused)
 static ssize_t store_AUXADC_channel(struct device *dev, struct device_attribute *attr,
 				    const char *buf, size_t size)
 {
-	char start_flag;
+	int start_flag = 0;
 	int error;
+	int ret;
 
-	if (sscanf(buf, "%s", &start_flag) != 1) {
+	ret = kstrtoint(buf, 10, &start_flag);
+	if (ret < 0) {
 		pr_debug("[adc_driver]: Invalid values\n");
 		return -EINVAL;
 	}

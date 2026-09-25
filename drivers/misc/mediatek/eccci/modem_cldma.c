@@ -3400,21 +3400,23 @@ static ssize_t md_cd_dump_show(struct ccci_modem *md, char *buf)
 
 static ssize_t md_cd_dump_store(struct ccci_modem *md, const char *buf, size_t count)
 {
-	/* echo will bring "xxx\n" here, so we eliminate the "\n" during comparing */
-	if (strncmp(buf, "ccif", count - 1) == 0)
-		md->ops->dump_info(md, DUMP_FLAG_CCIF_REG | DUMP_FLAG_CCIF, NULL, 0);
-	if (strncmp(buf, "cldma", count - 1) == 0)
-		md->ops->dump_info(md, DUMP_FLAG_CLDMA, NULL, -1);
-	if (strncmp(buf, "register", count - 1) == 0)
-		md->ops->dump_info(md, DUMP_FLAG_REG, NULL, 0);
-	if (strncmp(buf, "smem", count - 1) == 0)
-		md->ops->dump_info(md, DUMP_FLAG_SMEM, NULL, 0);
-	if (strncmp(buf, "image", count - 1) == 0)
-		md->ops->dump_info(md, DUMP_FLAG_IMAGE, NULL, 0);
-	if (strncmp(buf, "layout", count - 1) == 0)
-		md->ops->dump_info(md, DUMP_FLAG_LAYOUT, NULL, 0);
-	if (strncmp(buf, "mdslp", count - 1) == 0)
-		md->ops->dump_info(md, DUMP_FLAG_SMEM_MDSLP, NULL, 0);
+	if (md->md_state != GATED && md->md_state != INVALID) {
+		/* echo will bring "xxx\n" here, so we eliminate the "\n" during comparing */
+		if (strncmp(buf, "ccif", count - 1) == 0)
+			md->ops->dump_info(md, DUMP_FLAG_CCIF_REG | DUMP_FLAG_CCIF, NULL, 0);
+		if (strncmp(buf, "cldma", count - 1) == 0)
+			md->ops->dump_info(md, DUMP_FLAG_CLDMA, NULL, -1);
+		if (strncmp(buf, "register", count - 1) == 0)
+			md->ops->dump_info(md, DUMP_FLAG_REG, NULL, 0);
+		if (strncmp(buf, "smem", count - 1) == 0)
+			md->ops->dump_info(md, DUMP_FLAG_SMEM, NULL, 0);
+		if (strncmp(buf, "image", count - 1) == 0)
+			md->ops->dump_info(md, DUMP_FLAG_IMAGE, NULL, 0);
+		if (strncmp(buf, "layout", count - 1) == 0)
+			md->ops->dump_info(md, DUMP_FLAG_LAYOUT, NULL, 0);
+		if (strncmp(buf, "mdslp", count - 1) == 0)
+			md->ops->dump_info(md, DUMP_FLAG_SMEM_MDSLP, NULL, 0);
+	}
 	return count;
 }
 
@@ -3470,6 +3472,7 @@ static ssize_t md_cd_control_store(struct ccci_modem *md, const char *buf, size_
 	return count;
 }
 
+#ifdef FEATURE_GARBAGE_FILTER_SUPPORT
 static ssize_t md_cd_filter_show(struct ccci_modem *md, char *buf)
 {
 	int count = 0;
@@ -3517,6 +3520,7 @@ static ssize_t md_cd_filter_store(struct ccci_modem *md, const char *buf, size_t
 	}
 	return count;
 }
+#endif
 
 static ssize_t md_cd_parameter_show(struct ccci_modem *md, char *buf)
 {
@@ -3555,7 +3559,9 @@ static ssize_t md_cd_rxd_store(struct ccci_modem *md, const char *buf, size_t co
 
 CCCI_MD_ATTR(NULL, dump, 0660, md_cd_dump_show, md_cd_dump_store);
 CCCI_MD_ATTR(NULL, control, 0660, md_cd_control_show, md_cd_control_store);
+#ifdef FEATURE_GARBAGE_FILTER_SUPPORT
 CCCI_MD_ATTR(NULL, filter, 0660, md_cd_filter_show, md_cd_filter_store);
+#endif
 CCCI_MD_ATTR(NULL, parameter, 0660, md_cd_parameter_show, md_cd_parameter_store);
 CCCI_MD_ATTR(NULL, md_rxd, 0660, md_cd_rxd_show, md_cd_rxd_store);
 
@@ -3578,10 +3584,12 @@ static void md_cd_sysfs_init(struct ccci_modem *md)
 	if (ret)
 		CCCI_ERR_MSG(md->index, TAG, "fail to add sysfs node %s %d\n", ccci_md_attr_parameter.attr.name, ret);
 
+#ifdef FEATURE_GARBAGE_FILTER_SUPPORT
 	ccci_md_attr_filter.modem = md;
 	ret = sysfs_create_file(&md->kobj, &ccci_md_attr_filter.attr);
 	if (ret)
 		CCCI_ERR_MSG(md->index, TAG, "fail to add sysfs node %s %d\n", ccci_md_attr_filter.attr.name, ret);
+#endif
 	ccci_md_attr_md_rxd.modem = md;
 	ret = sysfs_create_file(&md->kobj, &ccci_md_attr_md_rxd.attr);
 	if (ret)

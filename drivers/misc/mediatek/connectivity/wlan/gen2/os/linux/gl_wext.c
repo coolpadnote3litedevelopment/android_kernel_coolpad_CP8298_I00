@@ -3072,6 +3072,11 @@ wext_set_encode_ext(IN struct net_device *prNetDev,
 	ASSERT(prEnc);
 	if (FALSE == GLUE_CHK_PR3(prNetDev, prEnc, pcExtra))
 		return -EINVAL;
+
+	if (prIWEncExt == NULL) {
+		DBGLOG(REQ, ERROR, "prIWEncExt is NULL!\n");
+		return -EINVAL;
+	}
 	prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prNetDev));
 
 	memset(keyStructBuf, 0, sizeof(keyStructBuf));
@@ -3274,6 +3279,12 @@ wext_set_encode_ext(IN struct net_device *prNetDev,
 				memcpy(((PUINT_8) prKey->aucKeyMaterial) + 16, prIWEncExt->key + 24, 8);
 				memcpy((prKey->aucKeyMaterial) + 24, prIWEncExt->key + 16, 8);
 			} else {
+				/* aucKeyMaterial is defined as a 32-elements array */
+				if (prIWEncExt->key_len > 32) {
+					DBGLOG(REQ, ERROR, "prIWEncExt->key_len: %d is too long!\n",
+						prIWEncExt->key_len);
+					return -EFAULT;
+				}
 				memcpy(prKey->aucKeyMaterial, prIWEncExt->key, prIWEncExt->key_len);
 			}
 

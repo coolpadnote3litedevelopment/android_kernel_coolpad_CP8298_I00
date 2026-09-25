@@ -962,9 +962,11 @@ static MUINT32 g_DmaErr_p1[nDMA_ERR] = { 0 };
 	usec = do_div(sec, 1000000);\
 }
 #if	1
+/* snprintf: avaLen, 1 for null termination*/
 #define	IRQ_LOG_KEEPER(irq,	ppb, logT, fmt,	...) do	{\
 	char *ptr;\
 	char *pDes;\
+	MINT32 avaLen;\
 	MUINT32	*ptr2 =	&gSvLog[irq]._cnt[ppb][logT];\
 	unsigned int str_leng;\
 	if (_LOG_ERR ==	logT) {\
@@ -974,16 +976,22 @@ static MUINT32 g_DmaErr_p1[nDMA_ERR] = { 0 };
 	} else if (_LOG_INF	== logT) {\
 		str_leng = NORMAL_STR_LEN*INF_PAGE;\
 	} else {\
-		str_leng = 0;\
+		LOG_ERR("Unknown logT(%d)", (MUINT32)logT);\
+		break;\
 	} \
 	ptr	= pDes = (char *)&(gSvLog[irq]._str[ppb][logT][gSvLog[irq]._cnt[ppb][logT]]);	\
-	sprintf((char *)(pDes),	fmt, ##__VA_ARGS__);  \
-	if ('\0' !=	gSvLog[irq]._str[ppb][logT][str_leng - 1]) {\
-		LOG_ERR("log str over flow(%d)", irq);\
+	avaLen = str_leng - 1 - gSvLog[irq]._cnt[ppb][logT];\
+	if (avaLen > 1) {  \
+		snprintf(pDes, avaLen, fmt, ##__VA_ARGS__);  \
+		if ('\0' !=	gSvLog[irq]._str[ppb][logT][str_leng - 1]) {\
+			LOG_ERR("(%d)(%d)log str over flow", irq, logT);\
+		} \
+		while (*ptr++ != '\0') {\
+			(*ptr2)++;\
+		}	  \
+	} else { \
+		LOG_ERR("(%d)(%d)log str avalible=0", irq, logT);\
 	} \
-	while (*ptr++ != '\0') {\
-		(*ptr2)++;\
-	}	  \
 } while	(0)
 #else
 #define IRQ_LOG_KEEPER(irq, ppb, logT, fmt, args...)    pr_warn(IRQTag fmt,  ##args)
@@ -3580,6 +3588,10 @@ static MBOOL ISP_BufWrite_Add(MUINT32 Size,
 	/*      */
 	/* LOG_DBG("- E."); */
 	/*      */
+	if (Size > ISP_BUF_SIZE_WRITE) {
+		LOG_ERR("ERROR ISP_BufWrite_Add Size(%d) > %d", Size, ISP_BUF_SIZE_WRITE);
+		return false;
+	}
 	for (i = 0; i < ISP_BUF_WRITE_AMOUNT; i++) {
 		if (IspInfo.BufInfo.Write[i].Status == ISP_BUF_STATUS_HOLD) {
 			if ((IspInfo.BufInfo.Write[i].Size + Size) > ISP_BUF_SIZE_WRITE) {
@@ -3588,6 +3600,11 @@ static MBOOL ISP_BufWrite_Add(MUINT32 Size,
 				return false;
 			}
 			/*      */
+			if (IspInfo.BufInfo.Write[i].Size > ISP_BUF_SIZE_WRITE) {
+				LOG_ERR("ERROR ISP_BufWrite_Add pData buffer size(%d) > %d\n",
+					IspInfo.BufInfo.Write[i].Size, ISP_BUF_SIZE_WRITE);
+				return false;
+			}
 			if (copy_from_user
 			    ((MUINT8 *) (IspInfo.BufInfo.Write[i].pData +
 					 IspInfo.BufInfo.Write[i].Size), (MUINT8 *) pData,
@@ -3809,7 +3826,15 @@ static MINT32 ISP_WriteReg(ISP_REG_IO_STRUCT *pRegIo)
 	MINT32 TimeTasklet = 0;
 	/* MUINT8* pData = NULL; */
 	ISP_REG_STRUCT *pData = NULL;
+
 	/*      */
+	if ((pRegIo->Count > (PAGE_SIZE/sizeof(MUINT32))) || (pRegIo->Count == 0)
+		|| (pRegIo->pData == NULL)) {
+		LOG_ERR("ERROR ISP_WriteReg pRegIo->pData is NULL or pRegIo->Count error:%d\n",
+			pRegIo->Count);
+		Ret = -EFAULT;
+		goto EXIT;
+	}
 	if (IspInfo.DebugMask & ISP_DBG_WRITE_REG) {
 		/* LOG_DBG("Data(0x%08X), Count(%d)", (MUINT32)(pRegIo->pData), (MUINT32)(pRegIo->Count)); */
 		LOG_DBG("Data(0x%p), Count(%d)", (pRegIo->pData), (pRegIo->Count));
@@ -3840,6 +3865,7 @@ static MINT32 ISP_WriteReg(ISP_REG_IO_STRUCT *pRegIo)
 			LOG_DBG("ERROR:	kmalloc	failed,	(process, pid, tgid)=(%s, %d, %d)",
 				current->comm, current->pid, current->tgid);
 			Ret = -ENOMEM;
+			goto EXIT;
 		}
 		/*      */
 		if (copy_from_user
@@ -7594,6 +7620,12 @@ static MINT32 ISP_ED_BufQue_CTRL_FUNC(ISP_ED_BUFQUE_STRUCT param)
 		/* update the buffer status cuz deque success/fail may not be the first buffer in Rlist */
 		/* ////////////////////////////////////////////////////////////////////// */
 		idx2 = ISP_ED_BufQue_Get_FirstMatBuf(param, P2_EDBUF_RLIST_TAG, 1);
+		if (idx2 == -1) {
+			spin_unlock(&(SpinLockEDBufQueList));
+			LOG_ERR("ERRRRRRRRRRR findmatch	index fail");
+			ret = -EFAULT;
+			return ret;
+		}
 
 		if (param.ctrl == ISP_ED_BUFQUE_CTRL_DEQUE_SUCCESS)
 			P2_EDBUF_RingList[idx2].bufSts = ISP_ED_BUF_STATE_DEQUE_SUCCESS;
@@ -9748,7 +9780,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 	MINT32 Ret = 0;
 	/*      */
 	MBOOL HoldEnable = MFALSE;
-	MUINT32 DebugFlag[2] = { 0 }, pid = 0;
+	MUINT32 DebugFlag[2] = { 0 };
 	ISP_REG_IO_STRUCT RegIo;
 	ISP_HOLD_TIME_ENUM HoldTime;
 	ISP_WAIT_IRQ_STRUCT IrqInfo;
@@ -10271,6 +10303,11 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		if (copy_from_user(DebugFlag, (void *)Param, sizeof(MUINT32) * 2) == 0) {
 			MUINT32 lock_key = _IRQ_MAX;
 
+			if (DebugFlag[1] >= _IRQ_MAX) {
+				LOG_ERR("unsupported module:0x%x\n", DebugFlag[1]);
+				Ret = -EFAULT;
+				break;
+			}
 			if (DebugFlag[1] == _IRQ_D)
 				lock_key = _IRQ;
 			else
@@ -10286,18 +10323,8 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		break;
 #ifdef ISP_KERNEL_MOTIFY_SINGAL_TEST
 	case ISP_SET_USER_PID:
-		if (copy_from_user(&pid, (void *)Param, sizeof(MUINT32)) == 0) {
-			spin_lock(&(IspInfo.SpinLockIsp));
-			getTaskInfo((pid_t) pid);
-
-			sendSignal();
-
-			LOG_DBG("[ISP_KERNEL_MOTIFY_SINGAL_TEST]:0x08%x	", pid);
-			spin_unlock(&(IspInfo.SpinLockIsp));
-		} else {
-			LOG_ERR("copy_from_user	failed");
-			Ret = -EFAULT;
-		}
+		LOG_INF("Unsupport Cmd: ISP_SET_USER_PID");
+		Ret = -EFAULT;
 		break;
 #endif
 	case ISP_BUFFER_CTRL:
@@ -10311,6 +10338,11 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 			MUINT32 currentPPB = m_CurrentPPB;
 			MUINT32 lock_key = _IRQ_MAX;
 
+			if (DebugFlag[0] >= _IRQ_MAX) {
+				LOG_ERR("unsupported module:0x%x\n", DebugFlag[0]);
+				Ret = -EFAULT;
+				break;
+			}
 			if (DebugFlag[0] == _IRQ_D)
 				lock_key = _IRQ;
 			else
@@ -12242,7 +12274,7 @@ EXPORT_SYMBOL(ISP_RegCallback);
 ********************************************************************************/
 MBOOL ISP_UnregCallback(ISP_CALLBACK_ENUM Type)
 {
-	if (Type > ISP_CALLBACK_AMOUNT) {
+	if (Type >= ISP_CALLBACK_AMOUNT) {
 		LOG_ERR("Type(%d) must smaller than %d", Type, ISP_CALLBACK_AMOUNT);
 		return MFALSE;
 	}

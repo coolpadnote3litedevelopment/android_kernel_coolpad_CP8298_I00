@@ -120,9 +120,9 @@ int musb_is_shutting = 0;
 int musb_skip_charge_detect = 0;
 int musb_removed = 0;
 int musb_epx_transfer_allowed = 0;
-module_param(musb_is_shutting, int, 0644);
+module_param(musb_is_shutting, int, 0400);
 module_param(musb_skip_charge_detect, int, 0644);
-module_param(musb_removed, int, 0644);
+module_param(musb_removed, int, 0400);
 module_param(musb_epx_transfer_allowed, int, 0644);
 #ifdef MUSB_QMU_SUPPORT
 #include "musb_qmu.h"
@@ -178,11 +178,11 @@ static const struct of_device_id apusb_of_ids[] = {
 
 /* void __iomem	*USB_BASE; */
 
-module_param_named(speed, musb_speed, uint, S_IRUGO | S_IWUSR);
+module_param_named(speed, musb_speed, uint, 0400);
 MODULE_PARM_DESC(debug, "USB speed configuration. default = 1, high speed");
-module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
+module_param_named(debug, musb_debug, uint, 0400);
 MODULE_PARM_DESC(debug, "Debug message level. Default = 0");
-module_param_named(dbg_uart, musb_uart_debug, uint, S_IRUGO | S_IWUSR);
+module_param_named(dbg_uart, musb_uart_debug, uint, 0400);
 
 #define TA_WAIT_BCON(m) max_t(int, (m)->a_wait_bcon, OTG_TIME_A_WAIT_BCON)
 
@@ -2648,8 +2648,8 @@ static void __exit musb_cleanup(void)
 }
 module_exit(musb_cleanup);
 #ifdef MUSB_QMU_SUPPORT
-module_param(mtk_qmu_dbg_level, int, 0644);
+module_param(mtk_qmu_dbg_level, int, 0400);
 #ifdef QMU_TASKLET
-module_param(qmu_tasklet, int, 0644);
+module_param(qmu_tasklet, int, 0400);
 #endif
 #endif

@@ -494,6 +494,11 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 			struct fm_ctl_parm parm_ctl;
 
 			WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_RW_REG\n");
+			if (!fm->chipon || fm_pwr_state_get(fm) == FM_PWR_OFF) {
+				WCN_DBG(FM_ERR | MAIN, "ERROR, FM chip is OFF\n");
+				ret = -EFAULT;
+				goto out;
+			}
 
 			if (copy_from_user(&parm_ctl, (void *)arg, sizeof(struct fm_ctl_parm))) {
 				ret = -EFAULT;
@@ -522,6 +527,11 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 			struct fm_top_rw_parm parm_ctl;
 
 			WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_TOP_RDWR\n");
+			if (!fm->chipon || fm_pwr_state_get(fm) == FM_PWR_OFF) {
+				WCN_DBG(FM_ERR | MAIN, "ERROR, FM chip is OFF\n");
+				ret = -EFAULT;
+				goto out;
+			}
 
 			if (copy_from_user(&parm_ctl, (void *)arg, sizeof(struct fm_top_rw_parm))) {
 				ret = -EFAULT;
@@ -550,9 +560,20 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 			struct fm_host_rw_parm parm_ctl;
 
 			WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_TOP_RDWR\n");
+			if (!fm->chipon || fm_pwr_state_get(fm) == FM_PWR_OFF) {
+				WCN_DBG(FM_ERR | MAIN, "ERROR, FM chip is OFF\n");
+				ret = -EFAULT;
+				goto out;
+			}
 
 			if (copy_from_user(&parm_ctl, (void *)arg, sizeof(struct fm_host_rw_parm))) {
 				ret = -EFAULT;
+				goto out;
+			}
+
+			/* 4 bytes alignment and illegal address */
+			if (parm_ctl.addr % 4 != 0 || parm_ctl.addr >= 0x90000000) {
+				ret = -FM_EPARA;
 				goto out;
 			}
 
@@ -575,7 +596,7 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 		}
 
 	case FM_IOCTL_GETCHIPID:{
-			fm_u16 chipid;
+			fm_u16 chipid = 0;
 
 			ret = fm_chipid_get(fm, &chipid);
 			WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_GETCHIPID:%04x\n", chipid);
@@ -590,7 +611,7 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 		}
 
 	case FM_IOCTL_GETMONOSTERO:{
-			fm_u16 usStereoMono;
+			fm_u16 usStereoMono = 0;
 
 			ret = fm_monostereo_get(fm, &usStereoMono);
 			WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_GETMONOSTERO:%04x\n", usStereoMono);
@@ -611,7 +632,7 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 		}
 
 	case FM_IOCTL_GETCURPAMD:{
-			fm_u16 PamdLevl;
+			fm_u16 PamdLevl = 0;
 
 			ret = fm_pamd_get(fm, &PamdLevl);
 			WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_GETCURPAMD:%d\n", PamdLevl);
@@ -626,7 +647,7 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 		}
 
 	case FM_IOCTL_GETCAPARRAY:{
-			fm_s32 ca;
+			fm_s32 ca = 0;
 
 			ret = fm_caparray_get(fm, &ca);
 			WCN_DBG(FM_DBG | MAIN, "FM_IOCTL_GETCAPARRAY:%d\n", ca);
@@ -826,8 +847,9 @@ static long fm_ops_ioctl(struct file *filp, fm_u32 cmd, unsigned long arg)
 
 	case FM_IOCTL_RDS_GET_LOG:{
 			struct rds_raw_t rds_log;
-			fm_s32 len;
+			fm_s32 len = 0;
 
+			memset(rds_log.data, 0, sizeof(rds_log.data));
 			WCN_DBG(FM_DBG | MAIN, "......FM_IOCTL_RDS_GET_LOG......\n");
 			/* fetch a record form RDS log buffer */
 			ret = fm_rds_log_get(fm, (struct rds_rx_t *)&(rds_log.data), &len);

@@ -1360,8 +1360,10 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			/* Try to prevent overrun */
 			dal_show->msg[sizeof(dal_show->msg) - 1] = 0;
 #ifdef CONFIG_MTK_FB
-			LOGD("AEE CALL DAL_Printf now\n");
-			DAL_Printf("%s", dal_show->msg);
+			if (!strncmp(current->comm, "aee_aed", 7)) {
+				LOGD("AEE CALL DAL_Printf now\n");
+				DAL_Printf("%s", dal_show->msg);
+			}
 #endif
 
  OUT:
@@ -1402,10 +1404,12 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				goto EXIT;
 			}
 #ifdef CONFIG_MTK_FB
-			LOGD("AEE CALL DAL_SetColor now\n");
-			DAL_SetColor(dal_setcolor.foreground, dal_setcolor.background);
-			LOGD("AEE CALL DAL_SetScreenColor now\n");
-			DAL_SetScreenColor(dal_setcolor.screencolor);
+			if (!strncmp(current->comm, "aee_aed", 7)) {
+				LOGD("AEE CALL DAL_SetColor now\n");
+				DAL_SetColor(dal_setcolor.foreground, dal_setcolor.background);
+				LOGD("AEE CALL DAL_SetScreenColor now\n");
+				DAL_SetScreenColor(dal_setcolor.screencolor);
+			}
 #endif
 			break;
 		}
@@ -1624,6 +1628,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 
 
 	#if 1
+	down_read(&current_task->mm->mmap_sem);
 	vma = current_task->mm->mmap;
 	while (vma && (mapcount < current_task->mm->map_count)) {
 		file = vma->vm_file;
@@ -1674,8 +1679,8 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 		}
 		vma = vma->vm_next;
 		mapcount++;
-
 	}
+	up_read(&current_task->mm->mmap_sem);
 	#endif
 
 	LOGE("maps addr(0x%08lx), maps len:%d\n",
