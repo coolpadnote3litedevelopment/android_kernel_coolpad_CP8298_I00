@@ -55,6 +55,7 @@ enum DOZE_T {
 	DOZE_WAKEUP = 2,
 };
 static enum DOZE_T doze_status = DOZE_DISABLED;
+static bool gesture_suspend;
 static s8 gtp_enter_doze(struct i2c_client *client);
 
 /******add by phg start for gesture wake up  ****/
@@ -3827,7 +3828,8 @@ static void tpd_suspend(struct device *h)
 	mutex_lock(&i2c_access);
 
 #if defined(CONFIG_GTP_SLIDE_WAKEUP)
-	if(support_gesture & TW_SUPPORT_GESTURE_IN_ALL){
+	gesture_suspend = !!(support_gesture & TW_SUPPORT_GESTURE_IN_ALL);
+	if (gesture_suspend) {
 	    ret = gtp_enter_doze(i2c_client_point);
 	}
 	else
@@ -3883,7 +3885,7 @@ static void tpd_resume(struct device *h)
 #endif
 
 #if defined(CONFIG_GTP_SLIDE_WAKEUP)
-	if(support_gesture & TW_SUPPORT_GESTURE_IN_ALL){
+	if (gesture_suspend) {
 	   doze_status = DOZE_DISABLED;
 	}
         else
