@@ -517,6 +517,11 @@ static int ccmni_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		}
 
 		ctlb_irat = ccmni_ctl_blk[md_id_irat];
+		if (ctlb_irat == NULL) {
+			CCMNI_ERR_MSG(md_id, "SIOCSCCMNICFG: %s iRAT fail, md%d not registered\n",
+				dev->name, md_id_irat);
+			return -EINVAL;
+		}
 		if (ccmni->index >= ctlb_irat->ccci_ops->ccmni_num) {
 			CCMNI_ERR_MSG(md_id, "SIOCSCCMNICFG: %s iRAT fail, ccmni_idx(%d) > md%d_ccmni_num(%d)\n",
 				dev->name, ccmni->index, md_id, ctlb_irat->ccci_ops->ccmni_num);
