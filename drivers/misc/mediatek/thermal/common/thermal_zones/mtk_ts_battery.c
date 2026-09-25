@@ -369,11 +369,7 @@ static int tsbat_sysrst_get_cur_state(struct thermal_cooling_device *cdev, unsig
 
 static int tsbat_sysrst_set_cur_state(struct thermal_cooling_device *cdev, unsigned long state)
 {
-#if defined(AEON_FOR_MALATA)
-	cl_dev_sysrst_state = 0;
-#else
-        cl_dev_sysrst_state = 0;
-#endif
+	cl_dev_sysrst_state = state;
 	if (cl_dev_sysrst_state == 1) {
 		pr_debug("Power/battery_Thermal: reset, reset, reset!!!");
 		pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
