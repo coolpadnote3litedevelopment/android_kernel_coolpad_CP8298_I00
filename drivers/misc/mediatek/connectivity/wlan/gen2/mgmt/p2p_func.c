@@ -1918,12 +1918,15 @@ p2pFuncParseBeaconContent(IN P_ADAPTER_T prAdapter,
 			case ELEM_ID_SUP_RATES:
 				{
 					/* 1 */ /* V */ /* Done */
-					DBGLOG(P2P, TRACE, "Support Rate IE\n");
-					kalMemCopy(prP2pBssInfo->aucAllSupportedRates,
-						   SUP_RATES_IE(pucIE)->aucSupportedRates,
-						   SUP_RATES_IE(pucIE)->ucLength);
+					UINT_8 ucLen = SUP_RATES_IE(pucIE)->ucLength;
 
-					prP2pBssInfo->ucAllSupportedRatesLen = SUP_RATES_IE(pucIE)->ucLength;
+					DBGLOG(P2P, TRACE, "Support Rate IE\n");
+					if (ucLen > RATE_NUM)
+						ucLen = RATE_NUM;
+					kalMemCopy(prP2pBssInfo->aucAllSupportedRates,
+						   SUP_RATES_IE(pucIE)->aucSupportedRates, ucLen);
+
+					prP2pBssInfo->ucAllSupportedRatesLen = ucLen;
 
 					DBGLOG_MEM8(P2P, TRACE, SUP_RATES_IE(pucIE)->aucSupportedRates,
 						    SUP_RATES_IE(pucIE)->ucLength);
@@ -2053,14 +2056,20 @@ p2pFuncParseBeaconContent(IN P_ADAPTER_T prAdapter,
 				/* Be attention,
 				 * ELEM_ID_SUP_RATES should be placed before ELEM_ID_EXTENDED_SUP_RATES. */
 				DBGLOG(P2P, TRACE, "Ex Support Rate IE\n");
-				kalMemCopy(&(prP2pBssInfo->aucAllSupportedRates[prP2pBssInfo->ucAllSupportedRatesLen]),
-					   EXT_SUP_RATES_IE(pucIE)->aucExtSupportedRates,
-					   EXT_SUP_RATES_IE(pucIE)->ucLength);
+				{
+					UINT_8 ucLen = EXT_SUP_RATES_IE(pucIE)->ucLength;
 
-				DBGLOG_MEM8(P2P, TRACE, EXT_SUP_RATES_IE(pucIE)->aucExtSupportedRates,
-					    EXT_SUP_RATES_IE(pucIE)->ucLength);
+					if (prP2pBssInfo->ucAllSupportedRatesLen >= RATE_NUM)
+						break;
+					if (ucLen > RATE_NUM - prP2pBssInfo->ucAllSupportedRatesLen)
+						ucLen = RATE_NUM - prP2pBssInfo->ucAllSupportedRatesLen;
+					kalMemCopy(&(prP2pBssInfo->aucAllSupportedRates[prP2pBssInfo->ucAllSupportedRatesLen]),
+						   EXT_SUP_RATES_IE(pucIE)->aucExtSupportedRates, ucLen);
 
-				prP2pBssInfo->ucAllSupportedRatesLen += EXT_SUP_RATES_IE(pucIE)->ucLength;
+					DBGLOG_MEM8(P2P, TRACE, EXT_SUP_RATES_IE(pucIE)->aucExtSupportedRates, ucLen);
+
+					prP2pBssInfo->ucAllSupportedRatesLen += ucLen;
+				}
 				break;
 			case ELEM_ID_HT_OP:
 				{
