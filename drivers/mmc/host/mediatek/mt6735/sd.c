@@ -1237,6 +1237,14 @@ void msdc_sd_power_off(void)
 	msdc_ldo_power(0, MT6328_POWER_LDO_VMCH, VOL_3000, &g_msdc1_flash);
 }
 
+//add for sd_sim_comm_slot; zhoumaiyun@yulong.com 2016.04.18
+void msdc_sd_power_off_quick(void)
+{
+    pr_err("Yulong:sdcard removed and power off VMCH first!\n");
+    pmic_config_interface_nolock(0x0A1C,0x0,0x1,1); //add here for disable VMCH
+}
+//add for sd_sim_comm_slot; zhoumaiyun@yulong.com 2016.04.18
+
 void msdc_set_smt(struct msdc_host *host, int set_smt)
 {
 	switch (host->id) {
@@ -8960,12 +8968,25 @@ static int msdc_drv_probe(struct platform_device *pdev)
 #endif
 #ifndef FPGA_PLATFORM
 	msdc_set_host_power_control(host);
+
+    /*
+    *modified by zhoumaiyun@yulong.com 2016.03.23
+    *SD card and sim card share common slot.
+    *When remove SD card and sim card,it maybe damage sim card.
+    *So cancel power up sd card.
+    */
+#if 0
 	/* work around:hot-plug project SD card LDO alway on if no SD card insert */
 	if ((host->hw->host_function == MSDC_SD)
 		&& (!(host->mmc->caps & MMC_CAP_NONREMOVABLE))) {
 		msdc_sd_power(host, 1);
 		msdc_sd_power(host, 0);
 	}
+#else
+    pr_err("Yulong:Disable SD VMCH\n");
+#endif
+    //end: Disable SD VDD;deleted by zhoumaiyun@yulong.com 2016.03.23
+
 #endif
 
 	/*
