@@ -2022,7 +2022,13 @@ static int update_test_kthread(void *data)
 	return 0;
 }
 #endif
-
+/*** add for display lcd info in factory mode by xuzhixian@yulong.com 20150325 start ***/
+extern int get_device_info(char* buf);
+/*** add for display lcd info in factory mode by xuzhixian@yulong.com 20150325 end ***/
+/*** add for display lcd note in fastmmi mode by yangli@yulong.com 20160125 start ***/
+unsigned char yulong_lcd_type[50]={0};
+/*** add for display lcd note in fastmmi mode by yangli@yulong.com 20160125 end ***/
+int  lcd_hx8394f = 0;//2016.03.22 lijianbin@yulong.com add by lijianbin for hx8394f esd
 static int mtkfb_probe(struct device *dev)
 {
 	struct platform_device *pdev;
@@ -2157,7 +2163,31 @@ static int mtkfb_probe(struct device *dev)
 	init_state++; /* 2 */
 
 	/* Register to system */
-
+//2016.03.22 lijianbin@yulong.com add by lijianbin for hx8394f esd
+    if(NULL != mtkfb_lcm_name)
+    {
+        if(strstr(mtkfb_lcm_name,"hx8394f")!=NULL)
+        {
+            lcd_hx8394f = 1;
+        }
+        else
+        {
+            lcd_hx8394f = 0;
+        }
+    }
+//2016.03.22 lijianbin@yulong.com add by lijianbin for hx8394f esd
+    /*** add for display lcd type in factory&fastmmi mode by xuzhixian@yulong.com 20150325 start ***/
+    if(NULL != mtkfb_lcm_name)
+    {
+        sprintf(yulong_lcd_type,"LCD: %s\n",mtkfb_lcm_name);
+        get_device_info(yulong_lcd_type);
+    }
+    else
+    {
+        sprintf(yulong_lcd_type,"LCD: unknown LCD driver\n");
+        get_device_info(yulong_lcd_type);
+    }
+    /*** add for display lcd type in factory&fastmmi mode by xuzhixian@yulong.com 20150325 end ***/
 	r = mtkfb_fbinfo_init(fbi);
 	if (r) {
 		DISPERR("mtkfb_fbinfo_init fail, r = %d\n", r);

@@ -41,7 +41,8 @@
 #include "lcm_define.h"
 #include "lcm_drv.h"
 #include "lcm_gpio.h"
-
+#include <linux/delay.h>//2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
+#define GPIO_LCM_PWR2_EN    44//2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
 
 #ifdef CONFIG_MTK_LEGACY
 #if defined(GPIO_LCD_BIAS_ENP_PIN)
@@ -229,6 +230,40 @@ static LCM_STATUS _lcm_gpio_check_data(char type, const LCM_DATA_T1 *t1)
 
 LCM_STATUS lcm_gpio_set_data(char type, const LCM_DATA_T1 *t1)
 {
+        u32 pin = 0;
+        // check parameter is valid
+        if (LCM_STATUS_OK == _lcm_gpio_check_data(type, t1)) {
+                if (t1->gpio_num) {
+                        //printf("gpio is %d yuyuyuyu\n",(unsigned int)t1->gpio_num);
+                        pin = ((unsigned int)t1->gpio_num | 0x80000000);
+                }
+                switch (type) {
+                        case LCM_GPIO_MODE:
+                                mt_set_gpio_mode(pin, (unsigned int)t1->data);
+                                break;
+
+                        case LCM_GPIO_DIR:
+                                mt_set_gpio_dir(pin, (unsigned int)t1->data);
+                                break;
+
+                        case LCM_GPIO_OUT:
+                                mt_set_gpio_out(pin, (unsigned int)t1->data);
+                                break;
+
+                        default:
+                                //dprintf(0, "[LCM][ERROR] %s: %d\n", __func__, (unsigned int)type);
+                                return LCM_STATUS_ERROR;
+                }
+        } else {
+                //dprintf(0, "[LCM][ERROR] %s: 0x%x, 0x%x\n", __func__, (unsigned int)type, (unsigned int)t1->data);
+                return LCM_STATUS_ERROR;
+        }
+
+        return LCM_STATUS_OK;
+}
+
+LCM_STATUS lcm_gpio_set_data1(char type, const LCM_DATA_T1 *t1)
+{
 	/* check parameter is valid */
 	if (LCM_STATUS_OK == _lcm_gpio_check_data(type, t1)) {
 		switch (type) {
@@ -275,7 +310,23 @@ LCM_STATUS lcm_gpio_set_data(char type, const LCM_DATA_T1 *t1)
 
 	return LCM_STATUS_OK;
 }
-
+//start 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
+void lcm_vddi_power_on(void)
+{
+    mt_set_gpio_mode(GPIO_LCM_PWR2_EN|0x80000000,GPIO_MODE_00);
+    mt_set_gpio_dir(GPIO_LCM_PWR2_EN,GPIO_DIR_OUT);
+    mt_set_gpio_out(GPIO_LCM_PWR2_EN,GPIO_OUT_ONE);
+    mdelay(10);
+}
+void lcm_vddi_power_off(void)
+{
+    mdelay(5);
+    mt_set_gpio_mode(GPIO_LCM_PWR2_EN|0x80000000,GPIO_MODE_00);
+    mt_set_gpio_dir(GPIO_LCM_PWR2_EN,GPIO_DIR_OUT);
+    mt_set_gpio_out(GPIO_LCM_PWR2_EN,GPIO_OUT_ZERO);
+    mdelay(5);
+}
+//end 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
 
 #ifdef CONFIG_MTK_LEGACY
 #else

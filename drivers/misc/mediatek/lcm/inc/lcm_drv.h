@@ -627,7 +627,8 @@ typedef struct {
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 typedef struct {
 	char data;
-	char padding[131];
+	char gpio_num;
+	char padding[130];
 } LCM_DATA_T1;
 
 
@@ -812,6 +813,7 @@ typedef struct {
 	defined(CONFIG_ARCH_MT6580)
 extern LCM_DRIVER *lcm_driver_list[];
 extern unsigned int lcm_count;
+extern unsigned int lcm_name_count;
 #endif
 /* --------------------------------------------------------------------------- */
 /* LCM Driver Functions */

@@ -38,7 +38,7 @@ atomic_t PMaster_enable = ATOMIC_INIT(0);
 #define IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII 0
 static int dsi_reg_op_debug;
 #include <mt-plat/sync_write.h>
-
+extern int  lcd_hx8394f;//2016.03.22 lijianbin@yulong.com add by lijianbin for hx8394f esd
 #ifndef CONFIG_MTK_CLKMGR
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -1239,7 +1239,7 @@ DSI_STATUS DSI_TXRX_Control(DISP_MODULE_ENUM module, cmdqRecHandle cmdq,
 	bool null_packet_en = false;
 	/*bool err_correction_en = false; */
 	bool dis_eotp_en = false;
-	bool hstx_cklp_en = true;
+	bool hstx_cklp_en = false;
 	int max_return_size = 0;
 
 	switch (lane_num) {
@@ -1271,7 +1271,6 @@ DSI_STATUS DSI_TXRX_Control(DISP_MODULE_ENUM module, cmdqRecHandle cmdq,
 		DSI_OUTREGBIT(cmdq, struct DSI_TXRX_CTRL_REG, DSI_REG[i]->DSI_TXRX_CTRL, LANE_NUM,
 			      lane_num_bitvalue);
 		DSI_OUTREG32(cmdq, &DSI_REG[i]->DSI_MEM_CONTI, DSI_WMEM_CONTI);
-#ifdef CONFIG_MACH_MT6735_AEON6735_65U_M0
 		if (CMD_MODE == dsi_params->mode) {
 			if (dsi_params->ext_te_edge == LCM_POLARITY_FALLING) {
 				/*use ext te falling edge */
@@ -1281,10 +1280,6 @@ DSI_STATUS DSI_TXRX_Control(DISP_MODULE_ENUM module, cmdqRecHandle cmdq,
 		DSI_OUTREGBIT(cmdq, struct DSI_TXRX_CTRL_REG, DSI_REG[i]->DSI_TXRX_CTRL, EXT_TE_EN,
 			      1);
 	}
-#else
-		DSI_OUTREGBIT(cmdq, struct DSI_TXRX_CTRL_REG, DSI_REG[i]->DSI_TXRX_CTRL, EXT_TE_EN,
-			      1);
-#endif
 	}
 
 	return DSI_STATUS_OK;
@@ -3882,15 +3877,9 @@ int ddp_dsi_build_cmdq(DISP_MODULE_ENUM module, void *cmdq_trigger_handle, CMDQ_
 	int dsi_i = 0;
 	LCM_DSI_PARAMS *dsi_params = NULL;
 	DSI_T0_INS t0;
-	DSI_T0_INS t1;
 	struct DSI_RX_DATA_REG read_data0;
-	struct DSI_RX_DATA_REG read_data1;
-	struct DSI_RX_DATA_REG read_data2;
-	struct DSI_RX_DATA_REG read_data3;
-	//UINT32 recv_data_cnt;
 
-	//static cmdqBackupSlotHandle hSlot;
-	static cmdqBackupSlotHandle hSlot[4] = {0, 0, 0, 0};
+	static cmdqBackupSlotHandle hSlot;
 
 	if (DISP_MODULE_DSIDUAL == module)
 		dsi_i = 0;
@@ -3972,39 +3961,28 @@ int ddp_dsi_build_cmdq(DISP_MODULE_ENUM module, void *cmdq_trigger_handle, CMDQ_
 			t0.CONFG = 0x04;	/* BTA */
 			t0.Data0 = dsi_params->lcm_esd_check_table[i].cmd;
 			/* / 0xB0 is used to distinguish DCS cmd or Gerneric cmd, is that Right??? */
+//2016.03.22 lijianbin@yulong.com add by lijianbin for hx8394f esd
+			if(0 != lcd_hx8394f)
+			{
+                t0.Data_ID = DSI_GERNERIC_READ_LONG_PACKET_ID;
+			}
+			else
+			{
 			t0.Data_ID =
 			    (t0.Data0 <
 			     0xB0) ? DSI_DCS_READ_PACKET_ID :
 			    DSI_GERNERIC_READ_LONG_PACKET_ID;
+			}
+//2016.03.22 lijianbin@yulong.com add by lijianbin for hx8394f esd
 			t0.Data1 = 0;
 
-                        t1.CONFG = 0x00;
-			t1.Data0 = dsi_params->lcm_esd_check_table[i].count;
-			t1.Data1 = 0x00;
-			t1.Data_ID = 0x37;
-
-
 			/* write DSI CMDQ */
-			//DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[0],
-		//		     0x00013700);
-#ifdef CONFIG_MACH_MT6735_PORRIDGEK3
-			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[0], 0x00043902);
-			if(dsi_params->lcm_esd_check_table[i].cmd == 0x0a)
-				DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[1], 0x008198ff);
-			else
-				DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[1], 0x038198ff);
-			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[2], AS_UINT32(&t1));
-			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[3], AS_UINT32(&t0));
-			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[4], 0x00043902);
-			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[5], 0x058198ff);
-			DSI_OUTREG32(cmdq_trigger_handle, &DSI_REG[dsi_i]->DSI_CMDQ_SIZE,6);
-#else
-			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[0], AS_UINT32(&t1));
+			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[0],
+				     0x00013700);
 			DSI_OUTREG32(cmdq_trigger_handle, &DSI_CMDQ_REG[dsi_i]->data[1],
 				     AS_UINT32(&t0));
 			DSI_OUTREG32(cmdq_trigger_handle, &DSI_REG[dsi_i]->DSI_CMDQ_SIZE,
 				     2);
-#endif
 
 			/* start DSI */
 			DSI_OUTREG32(cmdq_trigger_handle, &DSI_REG[dsi_i]->DSI_START, 0);
@@ -4026,14 +4004,9 @@ int ddp_dsi_build_cmdq(DISP_MODULE_ENUM module, void *cmdq_trigger_handle, CMDQ_
 			}
 #endif
 			/* 2. save RX data */
-			if (hSlot[0]) {
-				//DSI_BACKUPREG32(cmdq_trigger_handle, hSlot, i,
-				//		&DSI_REG[0]->DSI_RX_DATA0);
-                                DSI_BACKUPREG32(cmdq_trigger_handle, hSlot[0], i, &DSI_REG[0]->DSI_RX_DATA0);
-				DSI_BACKUPREG32(cmdq_trigger_handle, hSlot[1], i, &DSI_REG[0]->DSI_RX_DATA1);
-				DSI_BACKUPREG32(cmdq_trigger_handle, hSlot[2], i, &DSI_REG[0]->DSI_RX_DATA2);
-				DSI_BACKUPREG32(cmdq_trigger_handle, hSlot[3], i, &DSI_REG[0]->DSI_RX_DATA3);
-
+			if (hSlot) {
+				DSI_BACKUPREG32(cmdq_trigger_handle, hSlot, i,
+						&DSI_REG[0]->DSI_RX_DATA0);
 			}
 
 			/* 3. write RX_RACK */
@@ -4066,21 +4039,14 @@ int ddp_dsi_build_cmdq(DISP_MODULE_ENUM module, void *cmdq_trigger_handle, CMDQ_
 			DISPCHECK("[DSI]enter cmp i=%d\n", i);
 
 			/* read data */
-			if (hSlot[0]) {
+			if (hSlot) {
 				/* read from slot */
-				//cmdqBackupReadSlot(hSlot, i, ((uint32_t *) &read_data0));
-				cmdqBackupReadSlot(hSlot[0], i, ((uint32_t *) &read_data0));
-				cmdqBackupReadSlot(hSlot[1], i, ((uint32_t *) &read_data1));
-				cmdqBackupReadSlot(hSlot[2], i, ((uint32_t *) &read_data2));
-				cmdqBackupReadSlot(hSlot[3], i, ((uint32_t *) &read_data3));
-
+				cmdqBackupReadSlot(hSlot, i, ((uint32_t *) &read_data0));
 			} else {
 				/* read from dsi , support only one cmd read */
 				if (i == 0) {
-					DSI_OUTREG32(NULL, &read_data0, AS_UINT32(&DSI_REG[dsi_i]->DSI_RX_DATA0));
-					DSI_OUTREG32(NULL, &read_data1, AS_UINT32(&DSI_REG[dsi_i]->DSI_RX_DATA0));
-					DSI_OUTREG32(NULL, &read_data2, AS_UINT32(&DSI_REG[dsi_i]->DSI_RX_DATA0));
-					DSI_OUTREG32(NULL, &read_data3, AS_UINT32(&DSI_REG[dsi_i]->DSI_RX_DATA0));
+					DSI_OUTREG32(NULL, &read_data0,
+						     AS_UINT32(&DSI_REG[dsi_i]->DSI_RX_DATA0));
 				}
 			}
 
@@ -4088,23 +4054,17 @@ int ddp_dsi_build_cmdq(DISP_MODULE_ENUM module, void *cmdq_trigger_handle, CMDQ_
 				       AS_UINT32(&read_data0),
 				       AS_UINT32(&(dsi_params->lcm_esd_check_table[i])));
 
-                        DISPDBG("[DSI]enter cmp read_data0=0x%x,0x%x,0x%x,0x%x,i=%d\n",
-			read_data0.byte0,read_data0.byte1,read_data0.byte2,read_data0.byte3,i);
-			DISPDBG("[DSI]enter cmp read_data1=0x%x,0x%x,0x%x,0x%x,i=%d\n",
-			read_data1.byte0,read_data1.byte1,read_data1.byte2,read_data1.byte3,i);
-			DISPDBG("[DSI]enter cmp read_data2=0x%x,0x%x,0x%x,0x%x,i=%d\n",
-			read_data2.byte0,read_data2.byte1,read_data2.byte2,read_data2.byte3,i);
-		        DISPDBG("[DSI]enter cmp read_data3=0x%x,0x%x,0x%x,0x%x,i=%d\n",
-			read_data3.byte0,read_data3.byte1,read_data3.byte2,read_data3.byte3,i);
-
 			DISPDBG
-			    ("[DSI]cmp check_table cmd=0x%x,count=0x%x,para_list[0]=0x%x,para_list[1]=0x%x, para_list[2]=0x%x\n",
+			    ("[DSI]enter cmp read_data0 byte0=0x%x byte1=0x%x byte2=0x%x byte3=0x%x\n",
+			     read_data0.byte0, read_data0.byte1, read_data0.byte2,
+			     read_data0.byte3);
+			DISPDBG
+			    ("[DSI]cmp check_table cmd=0x%x,count=0x%x,para_list[0]=0x%x,para_list[1]=0x%x\n",
 			     dsi_params->lcm_esd_check_table[i].cmd,
 			     dsi_params->lcm_esd_check_table[i].count,
 			     dsi_params->lcm_esd_check_table[i].para_list[0],
-			     dsi_params->lcm_esd_check_table[i].para_list[1],
-			     dsi_params->lcm_esd_check_table[i].para_list[2]);
-			DISPDBG("[DSI]enter cmp DSI+0x200=0x%x\n",
+			     dsi_params->lcm_esd_check_table[i].para_list[1]);
+			/* DISPDBG("[DSI]enter cmp DSI+0x200=0x%x\n",
 				AS_UINT32(DDP_REG_BASE_DSI0 + 0x200));
 			DISPDBG("[DSI]enter cmp DSI+0x204=0x%x\n",
 				AS_UINT32(DDP_REG_BASE_DSI0 + 0x204));
@@ -4114,15 +4074,13 @@ int ddp_dsi_build_cmdq(DISP_MODULE_ENUM module, void *cmdq_trigger_handle, CMDQ_
 				AS_UINT32(DDP_REG_BASE_DSI0 + 0x74));
 			DISPDBG("[DSI]enter cmp DSI+0x88=0x%x\n",
 				AS_UINT32(DDP_REG_BASE_DSI0 + 0x88));
-		        DISPDBG("[DSI]enter cmp DSI+0x0c=0x%x\n",
-				AS_UINT32(DDP_REG_BASE_DSI0 + 0x0c)); 
-						
-                        if (read_data0.byte1 ==
+			DISPDBG("[DSI]enter cmp DSI+0x0c=0x%x\n",
+				AS_UINT32(DDP_REG_BASE_DSI0 + 0x0c)); */
+
+			if (read_data0.byte1 ==
 			    dsi_params->lcm_esd_check_table[i].para_list[0]) {
 				/* clear rx data */
 				/* DSI_OUTREG32(NULL, &DSI_REG[dsi_i]->DSI_RX_DATA0,0); */
-				ret = 0;	/* esd pass */
-                        }else if ((read_data1.byte0 == dsi_params->lcm_esd_check_table[i].para_list[0]) && (read_data1.byte1 == dsi_params->lcm_esd_check_table[i].para_list[1]) && (read_data1.byte2 == dsi_params->lcm_esd_check_table[i].para_list[2])) {
 				ret = 0;	/* esd pass */
 			} else {
 				ret = 1;	/* esd fail */
@@ -4132,25 +4090,11 @@ int ddp_dsi_build_cmdq(DISP_MODULE_ENUM module, void *cmdq_trigger_handle, CMDQ_
 
 	} else if (state == CMDQ_ESD_ALLC_SLOT) {
 		/* create 3 slot */
-		//cmdqBackupAllocateSlot(&hSlot, 3);
-                cmdqBackupAllocateSlot(&hSlot[0], 3);
-		cmdqBackupAllocateSlot(&hSlot[1], 3);
-		cmdqBackupAllocateSlot(&hSlot[2], 3);
-		cmdqBackupAllocateSlot(&hSlot[3], 3);
-
+		cmdqBackupAllocateSlot(&hSlot, 3);
 	} else if (state == CMDQ_ESD_FREE_SLOT) {
-		if (hSlot[0]) {
-			//cmdqBackupFreeSlot(hSlot);
-			//hSlot = 0;
-                        cmdqBackupFreeSlot(hSlot[0]);
-			cmdqBackupFreeSlot(hSlot[1]);
-			cmdqBackupFreeSlot(hSlot[2]);
-			cmdqBackupFreeSlot(hSlot[3]);
-			hSlot[0] = 0;
-			hSlot[1] = 0;
-			hSlot[2] = 0;
-			hSlot[3] = 0;
-
+		if (hSlot) {
+			cmdqBackupFreeSlot(hSlot);
+			hSlot = 0;
 		}
 	} else if (state == CMDQ_STOP_VDO_MODE) {
 		/* use cmdq to stop dsi vdo mode */

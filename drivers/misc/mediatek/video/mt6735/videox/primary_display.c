@@ -143,6 +143,10 @@ static atomic_t DvfsIsHPM = ATOMIC_INIT(1);
 static struct switch_dev disp_switch_data;
 #endif
 
+//start 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
+extern void lcm_vddi_power_on(void);
+extern void lcm_vddi_power_off(void);
+//end 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
 void enqueue_buffer(display_primary_path_context *ctx, struct list_head *head,
 		    disp_internal_buffer_info *buf)
 {
@@ -5834,7 +5838,9 @@ int primary_display_suspend(void)
 	DISPCHECK("[POWER]dpmanager path power off[begin]\n");
 	dpmgr_path_power_off(pgc->dpmgr_handle, CMDQ_DISABLE);
 	DISPCHECK("[POWER]dpmanager path power off[end]\n");
-
+//start 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
+    lcm_vddi_power_off();
+//end 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
 	if (_is_decouple_mode(pgc->session_mode) && !pgc->force_on_wdma_path) {
 		dpmgr_path_power_off(pgc->ovl2mem_path_handle, CMDQ_DISABLE);
 	} else if (is_mmdvfs_supported() && mmdvfs_get_mmdvfs_profile() == MMDVFS_PROFILE_D1_PLUS) {
@@ -5895,6 +5901,9 @@ int primary_display_resume(void)
 #ifdef CONFIG_SINGLE_PANEL_OUTPUT
 	dpmgr_reset_module_handle(pgc->dpmgr_handle);
 #endif
+//start 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
+    lcm_vddi_power_on();
+//end 2016.04.04 add by lijianbin for lcd power lijianbin@yulong.com
 	/* For CCF, we move the power on control to noirq_restore in mtkfb */
 	DISPCHECK("dpmanager path power on[begin]\n");
 	dpmgr_path_power_on(pgc->dpmgr_handle, CMDQ_DISABLE);

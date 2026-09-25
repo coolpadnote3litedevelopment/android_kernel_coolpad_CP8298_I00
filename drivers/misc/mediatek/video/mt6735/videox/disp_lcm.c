@@ -10,20 +10,10 @@
 
 #include "disp_lcm.h"
 
-/* sanford.lin add on 20160308 for get driver information */
-#ifdef AEON_DEVICE_PROC_MANAGER
-#include <linux/uaccess.h>
-#include <linux/fs.h>
-#include <linux/proc_fs.h>
-#define LCM_PROC_NAME	"AEON_LCM"
-LCM_DRIVER *aeon_lcm_drv = NULL;
-static struct proc_dir_entry *lcm_proc_entry = NULL;
-#endif
-/* sanford.lin end on 20160308 */
-
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
 #include <linux/of.h>
 
+#include <linux/yl_lcd.h>
 #define MAX_INIT_CNT 256
 #define REGFLAG_DELAY 0xFE
 #endif
@@ -237,11 +227,19 @@ int disp_of_getprop_u8(const struct device_node *np, const char *propname, u8 *o
 
 void parse_lcm_params_dt_node(struct device_node *np, LCM_PARAMS *lcm_params)
 {
+	static const char *panel_name;
 	if (!lcm_params) {
 		pr_err("%s:%d, ERROR: Error access to LCM_PARAMS(NULL)\n", __FILE__, __LINE__);
 		return;
 	}
 
+	panel_name = of_get_property(np, "lcm_params-lcd_type", NULL);
+	if (!panel_name) {
+	     pr_err("%s: ERROR: Error panel_name not specifid \n",__func__);
+	}else{
+	     get_panel_name(panel_name);
+	     pr_info("%s: Panel Name = %s\n", __func__, panel_name);
+	}
 	memset(lcm_params, 0x0, sizeof(LCM_PARAMS));
 
 	disp_of_getprop_u32(np, "lcm_params-types", &lcm_params->type);
@@ -740,7 +738,7 @@ void parse_lcm_ops_dt_node(struct device_node *np, LCM_DTS *lcm_dts, unsigned ch
 	}
 }
 
-void load_lcm_resources_from_DT(LCM_DRIVER *lcm_drv)
+void load_lcm_resources_from_DT(LCM_DRIVER *lcm_drv,int i)
 {
 	char dts_params[128] = { 0 };
 	char dts_ops[128] = { 0 };
@@ -755,7 +753,7 @@ void load_lcm_resources_from_DT(LCM_DRIVER *lcm_drv)
 
 	memset((unsigned char *)parse_dts, 0x0, sizeof(LCM_DTS));
 
-	sprintf(dts_params, "mediatek,lcm_params-%s", lcm_name_list[0]);
+	sprintf(dts_params, "mediatek,lcm_params-%s", lcm_name_list[i]);
 	pr_debug("LCM PARAMS DT compatible: %s\n", dts_params);
 
 	/* Load LCM parameters from DT */
@@ -766,7 +764,7 @@ void load_lcm_resources_from_DT(LCM_DRIVER *lcm_drv)
 		parse_lcm_params_dt_node(np, &(parse_dts->params));
 	}
 
-	sprintf(dts_ops, "mediatek,lcm_ops-%s", lcm_name_list[0]);
+	sprintf(dts_ops, "mediatek,lcm_ops-%s", lcm_name_list[i]);
 	pr_debug("LCM OPS DT compatible: %s\n", dts_ops);
 
 	/* Load LCM parameters from DT */
@@ -784,62 +782,6 @@ void load_lcm_resources_from_DT(LCM_DRIVER *lcm_drv)
 }
 #endif
 
-/* sanford.lin add on 20160308 for get driver information */
-#ifdef AEON_DEVICE_PROC_MANAGER
-const char* disp_get_lcm_id(void)
-{
-	DISPFUNC();
-
-    if(aeon_lcm_drv)
-        return aeon_lcm_drv->name;
-    else
-        return NULL;	
-}
-
-static ssize_t mtkfb_proc_oem_read(struct file *file, char *buffer, size_t count, loff_t *ppos)
-{
-	char *page = NULL;
-    char *ptr = NULL;
-	int len, err = -1;
-
-	page = kmalloc(PAGE_SIZE, GFP_KERNEL);
-	if (!page)
-	{
-		kfree(page);
-		return -ENOMEM;
-	}
-	ptr = page;
-
-//	if (disp_get_lcm_id())
-		ptr += sprintf(ptr, "%s\n", disp_get_lcm_id());
-//	else
-//		ptr += sprintf(ptr, "unknow lcm name\n");
-
-	len = ptr - page;
-	if(*ppos >= len)
-	{
-		kfree(page);
-		return 0;
-	}
-
-	err = copy_to_user(buffer,(char *)page,len);
-	*ppos += len;
-
-	if(err)
-	{
-		kfree(page);
-		return err;
-	}
-	kfree(page);
-	return len;
-}
-
-static const struct file_operations mtkfb_proc_fops = { 
-    .read = mtkfb_proc_oem_read
-};
-#endif
-/* sanford.lin end on 20160308 */
-
 disp_lcm_handle *disp_lcm_probe(char *plcm_name, LCM_INTERFACE_ID lcm_id)
 {
 	int lcmindex = 0;
@@ -848,8 +790,8 @@ disp_lcm_handle *disp_lcm_probe(char *plcm_name, LCM_INTERFACE_ID lcm_id)
 	LCM_DRIVER *lcm_drv = NULL;
 	LCM_PARAMS *lcm_param = NULL;
 	disp_lcm_handle *plcm = NULL;
+	int m = 0;
 
-	DISPPRINT("%s\n", __func__);
 	DISPCHECK("plcm_name=%s\n", plcm_name);
 	if (_lcm_count() == 0) {
 		DISPERR("no lcm driver defined in linux kernel driver\n");
@@ -863,18 +805,22 @@ disp_lcm_handle *disp_lcm_probe(char *plcm_name, LCM_INTERFACE_ID lcm_id)
 		} else {
 			lcm_drv = lcm_driver_list[0];
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
-			lcm_drv->name = lcm_name_list[0];
-#endif
-			if (strcmp(lcm_drv->name, plcm_name)) {
-				DISPERR
-				    ("FATAL ERROR!!!LCM Driver defined in kernel is different with LK\n");
-				return NULL;
+	                for (m = 0; m < lcm_name_count; m++) {
+				lcm_drv->name = lcm_name_list[m];
+				if (!strcmp(lcm_drv->name, plcm_name)) {
+					break;
+				}
 			}
+#endif	
+//			if (strcmp(lcm_drv->name, plcm_name)) {
+//				DISPERR("FATAL ERROR!!!LCM Driver defined in kernel is different with LK\n");
+//				return NULL;
+//			}
 
 			isLCMInited = true;
 			isLCMFound = true;
 		}
-		lcmindex = 0;
+	  lcmindex = 0;
 	} else {
 		if (plcm_name == NULL) {
 			/* TODO: we need to detect all the lcm driver */
@@ -918,7 +864,7 @@ disp_lcm_handle *disp_lcm_probe(char *plcm_name, LCM_INTERFACE_ID lcm_id)
 	}
 
 #if defined(MTK_LCM_DEVICE_TREE_SUPPORT)
-	load_lcm_resources_from_DT(plcm->drv);
+	load_lcm_resources_from_DT(plcm->drv,m);
 #endif
 
 	{
@@ -935,16 +881,7 @@ disp_lcm_handle *disp_lcm_probe(char *plcm_name, LCM_INTERFACE_ID lcm_id)
 		if (plcm->params->type == LCM_TYPE_DBI
 		    && plcm->params->lcm_if == LCM_INTERFACE_NOTDEFINED)
 			plcm->lcm_if_id = LCM_INTERFACE_DBI0;
-		/* sanford.lin add on 20160308 for get driver information */
-		#ifdef AEON_DEVICE_PROC_MANAGER
-			aeon_lcm_drv = lcm_drv;
-			lcm_proc_entry = proc_create(LCM_PROC_NAME, 0777, NULL, &mtkfb_proc_fops);
-		    	if (NULL == lcm_proc_entry)
-		    	{
-				printk("proc_create %s failed\n", LCM_PROC_NAME);
-		    	}			
-		#endif
-		/* sanford.lin end on 20160308 */
+
 		if ((lcm_id == LCM_INTERFACE_NOTDEFINED) || lcm_id == plcm->lcm_if_id) {
 			plcm->lcm_original_width = plcm->params->width;
 			plcm->lcm_original_height = plcm->params->height;

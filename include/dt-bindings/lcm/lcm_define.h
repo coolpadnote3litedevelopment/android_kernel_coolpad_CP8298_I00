@@ -51,4 +51,8 @@
 /* LCM_UTIL_WRITE_CMD_V2_DATA */
 #define LCM_UTIL_WRITE_CMD_V2_NULL	0xF9
 
+#define GPIO_LCM_RST            146
+#define GPIO_LCM_PWR_EN         60
+#define GPIO_LCM_PWR2_EN        44
+#define GPIO_LCM_PWR            59
 #endif				/* _LCM_DEFINE_H */

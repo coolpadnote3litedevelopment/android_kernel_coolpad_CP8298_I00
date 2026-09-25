@@ -2,14 +2,6 @@
 # Makefile for misc devices that really don't fit anywhere else.
 #
 
-# sanford.lin add on 20160216 for aeon
--include $(srctree)/../$(MTK_TARGET_PROJECT_FOLDER)/eastaeon.mk
-
-ifeq ($(AEON_SUPPORT),yes)
-CONFIG_CUSTOM_KERNEL_LCM := "$(AEON_LK_KERNEL_LCM)"
-endif
-#sanford.lin 20150205 end
-
 obj-$(CONFIG_MTK_LCM) += mt65xx_lcm_list.o        \
                          lcm_common.o             \
                          lcm_gpio.o               \
@@ -18,7 +10,7 @@ obj-$(CONFIG_MTK_LCM) += mt65xx_lcm_list.o        \
                          lcm_util.o
 
 LCM_LISTS := $(subst ",,$(CONFIG_CUSTOM_KERNEL_LCM))
-obj-$(CONFIG_MTK_LCM) += $(foreach LCM,$(LCM_LISTS),$(LCM)/)
+#obj-$(CONFIG_MTK_LCM) += $(foreach LCM,$(LCM_LISTS),$(LCM)/)
 
 subdir-ccflags-$(CONFIG_MTK_LCM) += -I$(srctree)/drivers/misc/mediatek/lcm/inc
 subdir-ccflags-$(CONFIG_MTK_FB) += -I$(srctree)/drivers/misc/mediatek/video/$(MTK_PLATFORM)/dispsys \
