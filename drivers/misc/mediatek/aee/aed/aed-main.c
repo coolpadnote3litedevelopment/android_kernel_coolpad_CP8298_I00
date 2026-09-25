@@ -413,7 +413,7 @@ static void ke_gen_backtrace_msg(void)
 	rep_msg->cmdType = AE_RSP;
 	rep_msg->cmdId = AE_REQ_BACKTRACE;
 
-	strcpy(data, aed_dev.kerec.lastlog->backtrace);
+	strncpy(data, aed_dev.kerec.lastlog->backtrace, AEE_BACKTRACE_LENGTH - 1);
 	/* Count into the NUL byte at end of string */
 	rep_msg->len = strlen(data) + 1;
 }
@@ -730,17 +730,17 @@ static void ee_gen_process_msg(void)
 
 	if (eerec->exp_linenum != 0) {
 		/* for old aed_md_exception1() */
-		n = sprintf(data, "%s", eerec->assert_type);
+		n = scnprintf(data, PROCESS_STRLEN, "%s", eerec->assert_type);
 		if (eerec->exp_filename[0] != 0) {
-			n += sprintf(data + n, ", filename=%s,line=%d", eerec->exp_filename,
-				     eerec->exp_linenum);
+			n += scnprintf(data + n, PROCESS_STRLEN - n, ", filename=%s,line=%d",
+				       eerec->exp_filename, eerec->exp_linenum);
 		} else if (eerec->fatal1 != 0 && eerec->fatal2 != 0) {
-			n += sprintf(data + n, ", err1=%d,err2=%d", eerec->fatal1,
-				     eerec->fatal2);
+			n += scnprintf(data + n, PROCESS_STRLEN - n, ", err1=%d,err2=%d",
+				       eerec->fatal1, eerec->fatal2);
 		}
 	} else {
 		LOGD("ee_gen_process_msg else\n");
-		n = sprintf(data, "%s", eerec->exp_filename);
+		n = scnprintf(data, PROCESS_STRLEN, "%s", eerec->exp_filename);
 	}
 
 	rep_msg->cmdType = AE_RSP;
@@ -839,7 +839,7 @@ static void ee_gen_coredump_msg(void)
 	rep_msg->cmdType = AE_RSP;
 	rep_msg->cmdId = AE_REQ_COREDUMP;
 	rep_msg->arg = 0;
-	sprintf(data, "/proc/aed/%s", CURRENT_EE_COREDUMP);
+	snprintf(data, 256, "/proc/aed/%s", CURRENT_EE_COREDUMP);
 	rep_msg->len = strlen(data) + 1;
 }
 
