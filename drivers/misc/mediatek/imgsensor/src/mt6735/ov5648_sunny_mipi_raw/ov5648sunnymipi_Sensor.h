@@ -2,7 +2,7 @@
  *
  * Filename:
  * ---------
- *     ov5648mipi_Sensor.h
+ *     ov5648sunnymipi_Sensor.h
  *
  * Project:
  * --------
@@ -13,8 +13,8 @@
  *     CMOS sensor header file
  *
  ****************************************************************************/
-#ifndef _OV5648MIPI_SENSOR_H
-#define _OV5648MIPI_SENSOR_H
+#ifndef _OV5648SUNNYMIPI_SENSOR_H
+#define _OV5648SUNNYMIPI_SENSOR_H
 
 
 typedef enum{

@@ -9,3 +9,9 @@ config MTK_EFUSE_DOWNGRADE
   default n
   help
     CONFIG_MTK_EFUSE_DOWNGRADE
+
+config YL_CAM_MODULE_NAME
+  bool CONFIG_YL_CAM_MODULE_NAME
+  default n
+  help
+    CONFIG_YL_CAM_MODULE_NAME

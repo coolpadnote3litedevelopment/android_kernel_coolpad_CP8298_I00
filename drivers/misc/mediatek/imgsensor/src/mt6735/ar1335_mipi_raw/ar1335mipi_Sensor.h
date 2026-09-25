@@ -2,7 +2,7 @@
  *
  * Filename:
  * ---------
- *     ov5648mipi_Sensor.h
+ *     AR1335mipi_Sensor.h
  *
  * Project:
  * --------
@@ -13,10 +13,10 @@
  *     CMOS sensor header file
  *
  ****************************************************************************/
-#ifndef _OV5648MIPI_SENSOR_H
-#define _OV5648MIPI_SENSOR_H
-
-
+#ifndef _AR1335MIPI_SENSOR_H
+#define _AR1335MIPI_SENSOR_H
+#include <linux/types.h>
+#include "kd_camera_typedef.h"
 typedef enum{
     IMGSENSOR_MODE_INIT,
     IMGSENSOR_MODE_PREVIEW,
@@ -111,6 +111,12 @@ typedef struct imgsensor_info_struct {
     kal_uint8  i2c_addr_table[5];    //record sensor support all write id addr, only supprt 4must end with 0xff
     kal_uint32  i2c_speed;     //i2c speed
 } imgsensor_info_struct;
+
+/* SENSOR READ/WRITE ID */
+//#define IMGSENSOR_WRITE_ID_1 (0x6c)
+//#define IMGSENSOR_READ_ID_1  (0x6d)
+//#define IMGSENSOR_WRITE_ID_2 (0x20)
+//#define IMGSENSOR_READ_ID_2  (0x21)
 
 extern int iReadRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u8 * a_pRecvData, u16 a_sizeRecvData, u16 i2cId);
 extern int iWriteRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u16 i2cId);

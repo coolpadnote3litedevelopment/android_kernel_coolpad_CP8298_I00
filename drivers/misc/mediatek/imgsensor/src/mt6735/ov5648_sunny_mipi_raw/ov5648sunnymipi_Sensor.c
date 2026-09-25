@@ -2,7 +2,7 @@
  *
  * Filename:
  * ---------
- *     OV5648mipi_Sensor.c
+ *     OV5648sunnymipi_Sensor.c
  *
  * Project:
  * --------
@@ -27,18 +27,18 @@
 #include <linux/fs.h>
 #include <asm/atomic.h>
 //#include <asm/system.h>
-/*#include <linux/xlog.h>*/
 #include "kd_camera_typedef.h"
+
 #include "kd_camera_hw.h"
 #include "kd_imgsensor.h"
 #include "kd_imgsensor_define.h"
 #include "kd_imgsensor_errcode.h"
 
-#include "ov5648mipi_Sensor.h"
+#include "ov5648sunnymipi_Sensor.h"
 
 /****************************Modify Following Strings for Debug****************************/
-#define PFX "OV5648_camera_sensor"
-#define LOG_1 LOG_INF("OV5648,MIPI 2LANE\n")
+#define PFX "OV5648_sunny_camera_sensor"
+#define LOG_1 LOG_INF("OV5648_sunny,MIPI 2LANE\n")
 #define LOG_2 LOG_INF("preview 1280*960@30fps,420Mbps/lane; video 1280*960@30fps,420Mbps/lane; capture 5M@15fps,420Mbps/lane\n")
 /****************************   Modify end    *******************************************/
 
@@ -225,7 +225,7 @@ static void set_dummy(void)
 #define BG_RATIO_TYPICAL_OYL5F03_5648FF 0x0149;
 #define RG_RATIO_TYPICAL_F5648DM_5648FF 0x0188;
 #define BG_RATIO_TYPICAL_F5648DM_5648FF 0x0135;
-#define RG_BG_RATIO_TYPICAL
+#define RG_BG_RATIO_SUNNY_TYPICAL
 #define RG_RATIO_TYPICAL_YL885F 0x012f;
 #define BG_RATIO_TYPICAL_YL885F 0x014a;
 #define RG_RATIO_TYPICAL_SUNNY_P5V30A  0x0171; //add by songte in 2013.6.27//0x0174
@@ -308,7 +308,7 @@ static int ov5648_read_otp(unsigned short index, struct otp_struct* otp)
 
 	// add by zdq 2012.9.13 begin
 	/* supply by OV for the light ratio*/
-#ifndef RG_BG_RATIO_TYPICAL
+#ifndef RG_BG_RATIO_SUNNY_TYPICAL
 	kal_uint8 ov5648_akerr_rg = 0x4C;
 	kal_uint8 ov5648_akerr_bg = 0x50;
 	kal_uint8 ov5648_qtech_rg = 0x58;
@@ -462,7 +462,7 @@ static int ov5648_read_otp(unsigned short index, struct otp_struct* otp)
  if (0x03 == otp->customer_id /*&& 0x04 == otp->lens_id*/)
 	{
 		printk("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ a-kerr YL885F. \n");
-#ifdef RG_BG_RATIO_TYPICAL
+#ifdef RG_BG_RATIO_SUNNY_TYPICAL
 		rg_ratio_typical = RG_RATIO_TYPICAL_YL885F;
 		bg_ratio_typical = BG_RATIO_TYPICAL_YL885F;
 #else
@@ -487,9 +487,9 @@ static int ov5648_read_otp(unsigned short index, struct otp_struct* otp)
 	}
 	else if(0x01 == otp->customer_id)
 	{
-		printk(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ sunny P5V30A. \n");
-	  rg_ratio_typical = RG_RATIO_TYPICAL_SUNNY_P5V30A;
-		bg_ratio_typical = BG_RATIO_TYPICAL_SUNNY_P5V30A;
+		printk(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ sunny D5V04A. \n");
+	  rg_ratio_typical = RG_RATIO_TYPICAL_SUNNY_D5V04A;
+		bg_ratio_typical = BG_RATIO_TYPICAL_SUNNY_D5V04A;
   }
 	printk("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ otp.rg_ratio=0x%04x. \n", otp->rg_ratio);
 	printk("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ otp.bg_ratio=0x%04x. \n", otp->bg_ratio);
@@ -692,14 +692,14 @@ static UINT32 ov5648_cheak_sensor_module_id(void)
     module_integrator_id = check_module_id();
     printk("ov5648_cheak_sensor_module_id = %d\n",module_integrator_id);
 
-    if (OV5648_OFILM_MODULE_ID == module_integrator_id)
+    if (OV5648_SUNNY_MODULE_ID == module_integrator_id)
 	{
-		printk("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ OLY O_5648. \n");
-		sprintf(factory_module_id,"sub camera:5M-Camera ov5648-ofilm\n");  //set camera device info by miaolei@yulong.com 2015.05.25
+		printk("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ sunny O_5648. \n");
+		sprintf(factory_module_id,"sub camera:5M-Camera ov5648-sunny\n");  //set camera device info by miaolei@yulong.com 2015.05.25
 		#ifdef CONFIG_YL_CAM_MODULE_NAME
-		sprintf(cam_module_name, "ov5648 ofilm");
+		sprintf(cam_module_name, "ov5648 sunny");
 		#endif
-		compatible_sensorid = OV5648MIPI_SENSOR_ID ;
+		compatible_sensorid = OV5648_SUNNY_SENSOR_ID ;
 	}
 	else
 	{
@@ -1644,9 +1644,10 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
         i++;
         retry = 2;
     }
+    //modify display camera info in EngMode by weiwenping@yulong.com at 20150521
     if (*sensor_id != imgsensor_info.sensor_id) {
         // if Sensor ID is not correct, Must set *sensor_id to 0xFFFFFFFF
-	LOG_INF("sensor detect fail! \n");
+		LOG_INF("sensor detect fail! \n");
         *sensor_id = 0xFFFFFFFF;
         return ERROR_SENSOR_CONNECT_FAIL;
     }
@@ -1655,7 +1656,7 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
     *sensor_id =ov5648_cheak_sensor_module_id();
     LOG_INF("OV5648GetSensorID 111 *sensorID = 0x%x ", *sensor_id);
 
-    if (*sensor_id != OV5648MIPI_SENSOR_ID)
+    if (*sensor_id != OV5648_SUNNY_SENSOR_ID)
     {
         // if Sensor ID is not correct, Must set *sensor_id to 0xFFFFFFFF
         *sensor_id = 0xFFFFFFFF;
@@ -1729,14 +1730,17 @@ static kal_uint32 open(void)
     sensor_init();
 
 
-    /* add begin by gaoatao  20140920 */
-    ret = ov5648_update_otp();
-    if (ret == 1) {
-		LOG_INF("OV5648MIPI_update_wb_register_from_otp invalid\n");
-    } else if (ret == 0) {
-		LOG_INF("OV5648MIPI_update_wb_register_from_otp success\n");
-    }
-    /* add end by gaoatao 20140920*/
+/* add begin by gaoatao  20140920 */
+	ret = ov5648_update_otp();
+	if (ret == 1)
+	  {
+				LOG_INF("OV5648MIPI_update_wb_register_from_otp invalid\n");
+			}
+		else if (ret == 0)
+			{
+				LOG_INF("OV5648MIPI_update_wb_register_from_otp success\n");
+	  }
+/* add end by gaoatao 20140920*/
     spin_lock(&imgsensor_drv_lock);
 
     imgsensor.autoflicker_en= KAL_FALSE;
@@ -2336,7 +2340,7 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
                     memcpy((void *)wininfo,(void *)&imgsensor_winsize_info[0],sizeof(SENSOR_WINSIZE_INFO_STRUCT));
                     break;
             }
-            break;
+          break;
         case SENSOR_FEATURE_SET_IHDR_SHUTTER_GAIN:
             LOG_INF("SENSOR_SET_SENSOR_IHDR LE=%d, SE=%d, Gain=%d\n",(UINT16)*feature_data,(UINT16)*(feature_data+1),(UINT16)*(feature_data+2));
             ihdr_write_shutter_gain((UINT16)*feature_data,(UINT16)*(feature_data+1),(UINT16)*(feature_data+2));
@@ -2357,10 +2361,10 @@ static SENSOR_FUNCTION_STRUCT sensor_func = {
     close
 };
 
-UINT32 OV5648MIPISensorInit(PSENSOR_FUNCTION_STRUCT *pfFunc)
+UINT32 OV5648SUNNYMIPISensorInit(PSENSOR_FUNCTION_STRUCT *pfFunc)
 {
     /* To Do : Check Sensor status here */
     if (pfFunc!=NULL)
         *pfFunc=&sensor_func;
     return ERROR_NONE;
-}    /*    OV5648MIPISensorInit    */
+}    /*    OV5648SUNNYMIPISensorInit    */
