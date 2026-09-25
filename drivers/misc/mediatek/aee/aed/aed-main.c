@@ -920,7 +920,7 @@ static void ee_gen_ind_msg(struct aed_eerec *eerec)
 
 	init_completion(&aed_ee_com);
 	wake_up(&aed_dev.eewait);
-	if (wait_for_completion_timeout(&aed_ee_com, msecs_to_jiffies(5 * 60 * 1000)))
+	if (!wait_for_completion_timeout(&aed_ee_com, msecs_to_jiffies(5 * 60 * 1000)))
 		LOGE("%s: TIMEOUT, not receive close event, skip\n", __func__);
 }
 
