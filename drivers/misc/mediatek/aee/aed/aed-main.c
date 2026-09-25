@@ -1798,11 +1798,13 @@ static void kernel_reportAPI(const AE_DEFECT_ATTR attr, const int db_opt, const 
 			oops->userthread_stack.Userthread_Stack = vzalloc(MaxStackSize);
 			if (oops->userthread_stack.Userthread_Stack == NULL) {
 				LOGE("%s: oops->userthread_stack.Userthread_Stack Vmalloc fail", __func__);
+				aee_oops_free(oops);
 				return;
 			}
 			oops->userthread_maps.Userthread_maps = vzalloc(MaxMapsSize);
 			if (oops->userthread_maps.Userthread_maps == NULL) {
 				LOGE("%s: oops->userthread_maps.Userthread_maps Vmalloc fail", __func__);
+				aee_oops_free(oops);
 				return;
 			}
 			LOGE("%s: oops->userthread_stack.Userthread_Stack :0x%08lx,maps:0x%08lx",
