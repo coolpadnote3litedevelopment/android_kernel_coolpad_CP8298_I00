@@ -1784,7 +1784,7 @@ static void kernel_reportAPI(const AE_DEFECT_ATTR attr, const int db_opt, const 
 		return;
 	oops = aee_oops_create(attr, AE_KERNEL_PROBLEM_REPORT, module);
 	if (NULL != oops) {
-		n += snprintf(oops->backtrace, AEE_BACKTRACE_LENGTH, msg);
+		n += snprintf(oops->backtrace, AEE_BACKTRACE_LENGTH, "%s", msg);
 		snprintf(oops->backtrace + n, AEE_BACKTRACE_LENGTH - n, "\nBacktrace:\n");
 		aed_get_traces(oops->backtrace);
 		oops->detail = (char *)(oops->backtrace);
