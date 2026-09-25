@@ -731,6 +731,55 @@ out:
 	return err;
 }
 
+/*
+ * emmc vendor name under fastmmi mode
+ * huyue added on 2016/3/16
+ */
+#ifndef CID_MANFID_SANDISK
+#define CID_MANFID_SANDISK	0x2
+#endif
+#ifndef CID_MANFID_TOSHIBA
+#define CID_MANFID_TOSHIBA	0x11
+#endif
+#ifndef CID_MANFID_MICRON
+#define CID_MANFID_MICRON	0x13
+#endif
+#ifndef CID_MANFID_SAMSUNG
+#define CID_MANFID_SAMSUNG	0x15
+#endif
+#ifndef CID_MANFID_SANDISK_NEW
+#define CID_MANFID_SANDISK_NEW	0x45
+#endif
+#ifndef CID_MANFID_HYNIX
+#define CID_MANFID_HYNIX	0x90
+#endif
+#ifndef CID_MANFID_KSI
+#define CID_MANFID_KSI		0x70
+#endif
+
+static char *mmc_get_vendor(unsigned int manfid)
+{
+	switch (manfid)
+	{
+		case CID_MANFID_SANDISK:
+			return "SANDISK";
+		case CID_MANFID_TOSHIBA:
+			return "TOSHIBA";
+		case CID_MANFID_MICRON:
+			return "MICRON";
+		case CID_MANFID_SAMSUNG:
+			return "SAMSUNG";
+		case CID_MANFID_SANDISK_NEW:
+			return "SANDISK_NEW";
+		case CID_MANFID_HYNIX:
+			return "HYNIX";
+		case CID_MANFID_KSI:
+			return "KSI";
+		default:
+			return "Unknow";
+	}
+}
+
 MMC_DEV_ATTR(cid, "%08x%08x%08x%08x\n", card->raw_cid[0], card->raw_cid[1],
 	card->raw_cid[2], card->raw_cid[3]);
 MMC_DEV_ATTR(csd, "%08x%08x%08x%08x\n", card->raw_csd[0], card->raw_csd[1],
@@ -750,6 +799,24 @@ MMC_DEV_ATTR(enhanced_area_offset, "%llu\n",
 MMC_DEV_ATTR(enhanced_area_size, "%u\n", card->ext_csd.enhanced_area_size);
 MMC_DEV_ATTR(raw_rpmb_size_mult, "%#x\n", card->ext_csd.raw_rpmb_size_mult);
 MMC_DEV_ATTR(rel_sectors, "%#x\n", card->ext_csd.rel_sectors);
+MMC_DEV_ATTR(emmc_information, "\n\nEMMC_Info as followed:\n"
+    "EMMC_Vendor              :        %s\n"
+    "(Manufactor_ID = 0x%06x) \n"
+    "OEM_ID                   :        0x%04x\n"
+    "Product_Name             :        %s\n"
+    "Product_Revision         :        0x%x \n"
+    "Product_Serial_Name      :        0x%08x\n"
+    "Product_Date             :        %d-%d\n\n",
+    mmc_get_vendor(card->cid.manfid),
+    card->cid.manfid,
+    card->cid.oemid,
+    card->cid.prod_name,
+    card->cid.prv,
+    card->cid.serial,
+    card->cid.year,
+    card->cid.month
+      );
+
 
 static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_cid.attr,
@@ -768,6 +835,7 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_enhanced_area_size.attr,
 	&dev_attr_raw_rpmb_size_mult.attr,
 	&dev_attr_rel_sectors.attr,
+	&dev_attr_emmc_information.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(mmc_std);
