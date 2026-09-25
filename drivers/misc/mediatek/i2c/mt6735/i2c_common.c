@@ -180,13 +180,16 @@ static int i2c_ext_conf_test(int bus_id, int val)
 	return ret;
 }
 
-static void hex2string(unsigned char *in, unsigned char *out, int length)
+static void hex2string(unsigned char *in, unsigned char *out, int length, int out_size)
 {
 	unsigned char *ptr = in;
 	unsigned char *ptrout = out;
 	unsigned char t;
 
-	while (length--) {
+	if (length > (out_size - 1) / 2)
+		length = (out_size - 1) / 2;
+
+	while (length-- > 0) {
 		t = (*ptr & 0xF0) >> 4;
 		if (t < 10)
 			*ptrout = t + '0';
@@ -355,11 +358,11 @@ static ssize_t set_config(struct device *dev, struct device_attribute *attr, con
 			if (ret >= 0) {
 
 				if (operation == 1) {
-					hex2string(vir_addr, tmpbuffer, length >> 1);
+					hex2string(vir_addr, tmpbuffer, length >> 1, sizeof(tmpbuffer));
 					snprintf(data_buffer, sizeof(data_buffer), "1 %s", tmpbuffer);
 					I2CLOG("received data: %s\n", tmpbuffer);
 				} else if (operation == 0) {
-					hex2string(vir_addr, tmpbuffer, trans_auxlen);
+					hex2string(vir_addr, tmpbuffer, min(trans_auxlen, length >> 1), sizeof(tmpbuffer));
 					snprintf(data_buffer, sizeof(data_buffer), "1 %s", tmpbuffer);
 					I2CLOG("received data: %s\n", tmpbuffer);
 				} else {
