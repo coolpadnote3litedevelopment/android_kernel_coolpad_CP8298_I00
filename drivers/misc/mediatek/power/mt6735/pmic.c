@@ -127,9 +127,6 @@ static DEFINE_MUTEX(pmic_lock_mutex);
 #else
 #define CONFIG_PMIC_HW_ACCESS_EN
 #endif
-/*yulong add for open pmic log 20160127*/
-#define PMIC_DEBUG_PR_DBG
-/*yulong end*/
 #define PMICTAG                "[PMIC] "
 #if defined PMIC_DEBUG_PR_DBG
 #define PMICLOG(fmt, arg...)   pr_err(PMICTAG fmt, ##arg)
