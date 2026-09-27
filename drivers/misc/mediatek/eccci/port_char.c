@@ -1082,7 +1082,7 @@ static int port_char_recv_req(struct ccci_port *port, struct ccci_request *req)
 		list_del(&req->entry);	/* dequeue from queue's list */
 		list_add_tail(&req->entry, &port->rx_req_list);
 		spin_unlock_irqrestore(&port->rx_req_lock, flags);
-		wake_lock_timeout(&port->rx_wakelock, HZ);
+		wake_lock_timeout(&port->rx_wakelock, HZ / 2);
 		wake_up_all(&port->rx_wq);
 		return 0;
 	}
