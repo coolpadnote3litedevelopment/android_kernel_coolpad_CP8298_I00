@@ -11,8 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __M4U_PORT_D1_H__
-#define __M4U_PORT_D1_H__
+#ifndef __M4U_PORT_H__
+#define __M4U_PORT_H__
 
 /* ==================================== */
 /* about portid */
@@ -22,17 +22,21 @@ enum {
 	M4U_PORT_DISP_OVL0           ,
 	M4U_PORT_DISP_RDMA0          ,
 	M4U_PORT_DISP_WDMA0          ,
+	M4U_PORT_DISP_OVL1           ,
 	M4U_PORT_DISP_RDMA1          ,
+	M4U_PORT_DISP_WDMA1          ,
+	M4U_PORT_DISP_2L_OVL0        ,
+	M4U_PORT_DISP_2L_OVL1        ,
 	M4U_PORT_MDP_RDMA            ,
 	M4U_PORT_MDP_WDMA            ,
 	M4U_PORT_MDP_WROT            ,
 
 	M4U_PORT_HW_VDEC_MC_EXT      ,
 	M4U_PORT_HW_VDEC_PP_EXT      ,
+	M4U_PORT_HW_VDEC_VLD_EXT     ,
 	M4U_PORT_HW_VDEC_AVC_MV_EXT  ,
 	M4U_PORT_HW_VDEC_PRED_RD_EXT ,
 	M4U_PORT_HW_VDEC_PRED_WR_EXT ,
-	M4U_PORT_HW_VDEC_VLD_EXT     ,
 	M4U_PORT_HW_VDEC_PPWRAP_EXT  ,
 
 	M4U_PORT_IMGO                ,
@@ -76,3 +80,4 @@ enum {
 #define M4U_PORT_NR M4U_PORT_UNKNOWN
 
 #endif
+

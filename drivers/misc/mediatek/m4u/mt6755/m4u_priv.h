@@ -27,7 +27,6 @@
 #include "m4u.h"
 #include "m4u_reg.h"
 #include "../2.0/m4u_pgtable.h"
-#include "m4u_platform.h"
 
 #define M4UMSG(string, args...)	pr_err("M4U"string, ##args)
 #define M4UINFO(string, args...) pr_debug("M4U"string, ##args)
@@ -36,6 +35,7 @@
 
 /* #define M4U_FPGAPORTING */
 #define M4U_PROFILE
+#define M4U_4GBDRAM
 
 #define M4U_DVT 0
 
@@ -80,6 +80,9 @@ extern void MMProfileStart(int start);
 #define register_larb_monitor(...)
 #endif
 
+#ifdef M4U_TEE_SERVICE_ENABLE
+extern int gM4U_L2_enable;
+#endif
 
 #ifdef CONFIG_MTK_CLKMGR
 #include <mach/mt_clkmgr.h>
@@ -97,10 +100,10 @@ enum {
 	LARB2_SMI_CLK,
 	VENC_VENC_CLK,
 	VENC_LARB_CLK,
-	MTCMOS_LARB0,
-	MTCMOS_LARB1,
-	MTCMOS_LARB2,
-	MTCMOS_LARB3,
+	NTCMOS_VEN,
+	NTCMOS_VDE,
+	NTCMOS_ISP,
+	NTCMOS_DIS,
 	SMI_CLK_NUM,
 };
 
@@ -202,7 +205,7 @@ int m4u_dump_main_tlb(int m4u_id, int m4u_slave_id);
 int m4u_dump_pfh_tlb(int m4u_id);
 int m4u_domain_init(struct m4u_device *m4u_dev, void *priv_reserve);
 
-/*int config_mau(M4U_MAU_STRUCT mau);*/
+int config_mau(M4U_MAU_STRUCT mau);
 int m4u_enable_tf(int port, bool fgenable);
 
 extern int gM4U_4G_DRAM_Mode;
@@ -247,7 +250,7 @@ extern int gM4U_log_to_uart;
 				if (level > gM4U_log_to_uart)\
 					pr_warn("M4U"string, ##args);\
 				else\
-					pr_err("M4U"string, ##args);\
+					pr_warn("M4U"string, ##args);\
 			} \
 		} while (0)
 
@@ -273,7 +276,7 @@ extern int gM4U_log_to_uart;
 		if (seq_file)\
 			seq_printf(seq_file, fmt, ##args);\
 		else\
-			pr_debug(fmt, ##args);\
+			pr_warn(fmt, ##args);\
 	} while (0)
 
 /* ======================================= */
