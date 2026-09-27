@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #ifndef __JPEG_DRV_COMMON_H__
 #define __JPEG_DRV_COMMON_H__
 
@@ -88,8 +101,8 @@ typedef struct {
 void jpeg_drv_dec_power_on(void);
 void jpeg_drv_dec_power_off(void);
 
-int jpeg_drv_dec_set_config_data(JPEG_DEC_DRV_IN *config);
-void jpeg_drv_dec_set_dst_bank0(unsigned int addr_Y, unsigned int addr_U, unsigned int addr_V);
+unsigned int jpeg_drv_dec_set_config_data(JPEG_DEC_DRV_IN *config);
+unsigned int jpeg_drv_dec_set_dst_bank0(unsigned int addr_Y, unsigned int addr_U, unsigned int addr_V);
 void jpeg_drv_dec_verify_state_and_reset(void);
 void jpeg_drv_dec_reset(void);
 void jpeg_drv_dec_warm_reset(void);
@@ -99,7 +112,7 @@ void jpeg_drv_dec_dump_key_reg(void);
 void jpeg_drv_dec_dump_reg(void);
 int jpeg_drv_dec_break(void);
 
-void jpeg_drv_dec_set_pause_mcu_idx(unsigned int McuIdx);
+unsigned int jpeg_drv_dec_set_pause_mcu_idx(unsigned int McuIdx);
 void jpeg_drv_dec_resume(unsigned int resume);
 
 kal_uint32 jpeg_drv_dec_get_result(void);
