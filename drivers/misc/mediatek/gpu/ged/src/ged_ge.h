@@ -11,21 +11,17 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __GED_ERROR_H__
-#define __GED_ERROR_H__
+#ifndef __GED_GE_H__
+#define __GED_GE_H__
 
-typedef enum GED_ERROR_TAG
-{
-	GED_OK,
-    GED_ERROR_FAIL,
-    GED_ERROR_OOM,
-    GED_ERROR_OUT_OF_FD,
-    GED_ERROR_FAIL_WITH_LIMIT,
-    GED_ERROR_TIMEOUT,
-    GED_ERROR_CMD_NOT_PROCESSED,
-	GED_ERROR_INVALID_PARAMS,
-	GED_INTENTIONAL_BLOCK
-} GED_ERROR;
+#include <linux/types.h>
 
+#include <ged_type.h>
+
+int ged_ge_init(void);
+int ged_ge_exit(void);
+int ged_ge_alloc(int region_num, uint32_t *region_sizes);
+int ged_ge_get(int ge_fd, int region_id, int u32_offset, int u32_size, uint32_t *output_data);
+int ged_ge_set(int ge_fd, int region_id, int u32_offset, int u32_size, uint32_t *input_data);
 
 #endif
