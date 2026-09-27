@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 #ifndef __DDP_GAMMA_H__
 #define __DDP_GAMMA_H__
 
@@ -36,6 +49,8 @@ extern int corr_dbg_en;
 void ccorr_test(const char *cmd, char *debug_output);
 int ccorr_interface_for_color(unsigned int ccorr_idx,
 	unsigned int ccorr_coef[3][3], void *handle);
+void disp_ccorr_on_end_of_frame(void);
+void disp_pq_notify_backlight_changed(int bl_1024);
 
 #endif
 

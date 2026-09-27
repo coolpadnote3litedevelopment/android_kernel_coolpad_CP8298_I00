@@ -16,26 +16,12 @@ config MTK_VIDEOX
 	help
 	  CONFIG_MTK_VIDEOX
 
-config MTK_VIDEOX_CYNGN_LIVEDISPLAY
-	bool CONFIG_MTK_VIDEOX_CYNGN_LIVEDISPLAY
-	default n
-	help
-		Enable the RGB interface for color calibration.
-
 config MTK_LCM_PHYSICAL_ROTATION
 	string "MTK_LCM_PHYSICAL_ROTATION"
 	help
 	  To set the angle between dimension of UI layout and LCM scan
 	  direction
 
-# sanford.lin 20150311 add for aeon
-menuconfig MTK_DEFAULT
-	tristate "mtk default"
-	default y
-	---help---
-	  Say Y here for supporting LCM_HEIGHT,LCM_WIDTH.
-
-if MTK_DEFAULT
 config LCM_HEIGHT
 	string "LCM_HEIGHT"
 	default "1920"
@@ -47,8 +33,6 @@ config LCM_WIDTH
 	default "1080"
 	help
 	  To set LCM resolution width size
-endif
-# sanford.lin 20150311 end
 
 config CUSTOM_LCM_X
 	string "LCM_X"
@@ -61,6 +45,15 @@ config CUSTOM_LCM_Y
 	default "0"
 	help
 	  To set CUSTOM_LCM_Y size
+
+config MTK_ROUND_CORNER_SUPPORT
+	bool "enable medietak display round corner"
+	default n
+	help
+	  define CONFIG_MTK_ROUND_CORNER_SUPPORT to enable Mediatek Round Corner on display.
+	  If you want to use Meditek Round Corner on display, please make sure it is Y in xxx_defconfig.mk.
+	  This feature require round corner pattern provided in lcm driver folder.
+	  If unsure, set N.
 
 config MTK_FB_SUPPORT_ASSERTION_LAYER
 	bool "AEE Assertion Layer Support"
@@ -100,3 +93,24 @@ config SINGLE_PANEL_OUTPUT
 	  When hdmi plug in, only show display in tv, panle will be black screen.
 	  And when hdmi plug out, panel will resume.
 
+config MTK_OVERLAY_ENGINE_SUPPORT
+	bool "MTK_OVERLAY_ENGINE_SUPPORT"
+	default n
+	help
+	  This enable support overlay time division multiplex.
+
+config MTK_CONSUMER_PARTIAL_UPDATE_SUPPORT
+	bool "MTK_CONSUMER_PARTIAL_UPDATE_SUPPORT"
+	default n
+	help
+	  This enable support display partial support.
+
+config MTK_PQ_COLOR_MODE
+	string "Config PQ_COLOR_MODE (MDP & DISP COLOR on/off)"
+	default "DISP"
+	help
+	  This control mdp color on/off and disp color on/off
+	  if value equals to DISP, only display color is on.
+	  if value equals to MDP, only mdp color is on.
+	  if value equals to DISP_MDP, mdp and display color are both on.
+	  if value equals to OFF, mdp and display color are both off.
