@@ -11,8 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __MT6735_DRVBASE_H__
-#define __MT6735_DRVBASE_H__
+#ifndef __MT6755_DRVBASE_H__
+#define __MT6755_DRVBASE_H__
 
 #include "val_types_private.h"
 

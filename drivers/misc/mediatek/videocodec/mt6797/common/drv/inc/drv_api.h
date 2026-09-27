@@ -11,8 +11,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __MT6735_DRVBASE_H__
-#define __MT6735_DRVBASE_H__
+#ifndef __MT6797_DRVBASE_H__
+#define __MT6797_DRVBASE_H__
 
 #include "val_types_private.h"
 
@@ -31,7 +31,7 @@ typedef struct {
 	VAL_HANDLE_T pvHandle;	/*  */
 	VAL_UINT32_T u4VCodecThreadNum;	/* Hybrid vcodec thread num */
 	VAL_UINT32_T u4VCodecThreadID[VCODEC_THREAD_MAX_NUM];	/* hybrid vcodec thread ids */
-	VAL_ULONG_T ulSize;
+	VAL_ULONG_T  ulSize;
 } VAL_NON_CACHE_MEMORY_LIST_T;
 
 /* ============================================================== */

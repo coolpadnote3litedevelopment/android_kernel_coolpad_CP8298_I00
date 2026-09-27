@@ -131,6 +131,7 @@ VAL_RESULT_T eVideoWaitEvent(VAL_EVENT_T *a_prParam, VAL_UINT32_T a_u4ParamSize)
 						   pvReserved) /*g_mflexvideo_interrupt_handler */ ,
 						 timeout_jiff);
 	if (0 == i4Ret) {
+		MODULE_MFV_LOGE("[VCODEC] eVideoWaitEvent timeout: %d ms", a_prParam->u4TimeoutMs);
 		status = VAL_RESULT_INVALID_ISR;	/* timeout */
 	} else if (-ERESTARTSYS == i4Ret) {
 		MODULE_MFV_LOGE("[VCODEC] eVideoWaitEvent wake up by ERESTARTSYS");

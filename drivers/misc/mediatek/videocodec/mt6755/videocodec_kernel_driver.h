@@ -55,13 +55,7 @@
 #define VCODEC_MB                      _IOW(MFV_IOC_MAGIC, 0x34, unsigned int) /* VAL_UINT32_T * */
 #define VCODEC_SET_LOG_COUNT           _IOW(MFV_IOC_MAGIC, 0x35, unsigned int) /* VAL_BOOL_T * */
 
-/* extern unsigned long get_cpu_load(int cpu); */
 
 /* #define MFV_GET_CACHECTRLADDR_CMD  _IOR(MFV_IOC_MAGIC, 0x06, int) */
-
-#ifdef CONFIG_MTK_HIBERNATION
-extern void mt_irq_set_sens(unsigned int irq, unsigned int sens);
-extern void mt_irq_set_polarity(unsigned int irq, unsigned int polarity);
-#endif
 
 #endif /* __VCODEC_DRIVER_H__ */
