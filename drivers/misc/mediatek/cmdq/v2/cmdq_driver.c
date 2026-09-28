@@ -19,6 +19,7 @@
 #include "cmdq_mdp_common.h"
 #include "cmdq_device.h"
 #include "cmdq_sec.h"
+#include "cmdq_legacy.h"
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -515,6 +516,47 @@ bool cmdq_driver_support_wait_and_receive_event_in_same_tick(void)
 #endif
 }
 
+#define CMDQ_LEGACY_COMMAND_SIZE offsetof(struct cmdqCommandStruct, userDebugStr)
+#define CMDQ_IOCTL_EXEC_COMMAND_LEGACY \
+	_IOC(_IOC_WRITE, CMDQ_IOCTL_MAGIC_NUMBER, 3, CMDQ_LEGACY_COMMAND_SIZE)
+#define CMDQ_IOCTL_ASYNC_JOB_EXEC_LEGACY \
+	_IOC(_IOC_WRITE, CMDQ_IOCTL_MAGIC_NUMBER, 5, \
+	     CMDQ_LEGACY_COMMAND_SIZE + sizeof(cmdqJobHandle_t))
+#define CMDQ_IOCTL_QUERY_DTS_LEGACY \
+	_IOW(CMDQ_IOCTL_MAGIC_NUMBER, 11, struct cmdqLegacyDTSDataStruct)
+
+static int cmdq_driver_query_legacy_dts(unsigned long param)
+{
+	const cmdqDTSDataStruct *dts = cmdq_core_get_whole_DTS_Data();
+	struct cmdqLegacyDTSDataStruct *legacy;
+	int i, ret = 0;
+
+	/* sizes encoded in the ioctl numbers of the M libdpframework */
+	BUILD_BUG_ON(CMDQ_LEGACY_COMMAND_SIZE != 208);
+	BUILD_BUG_ON(sizeof(struct cmdqLegacyDTSDataStruct) != 3236);
+
+	legacy = kzalloc(sizeof(*legacy), GFP_KERNEL);
+	if (!legacy)
+		return -ENOMEM;
+
+	for (i = 0; i < CMDQ_SYNC_TOKEN_MAX; i++)
+		legacy->eventTable[i] = CMDQ_SYNC_TOKEN_INVALID - 1 - i;
+	for (i = 0; i < ARRAY_SIZE(cmdq_legacy_events); i++)
+		legacy->eventTable[cmdq_legacy_events[i].legacy] =
+			dts->eventTable[cmdq_legacy_events[i].id];
+	for (i = 0; i < ARRAY_SIZE(cmdq_legacy_subsys); i++)
+		legacy->subsys[cmdq_legacy_subsys[i].legacy] =
+			dts->subsys[cmdq_legacy_subsys[i].id];
+	memcpy(legacy->MDPBaseAddress, dts->MDPBaseAddress,
+	       sizeof(legacy->MDPBaseAddress));
+
+	if (copy_to_user((void *)param, legacy, sizeof(*legacy)))
+		ret = -EFAULT;
+
+	kfree(legacy);
+	return ret;
+}
+
 static long cmdq_ioctl(struct file *pFile, unsigned int code, unsigned long param)
 {
 	struct cmdqCommandStruct command;
@@ -530,7 +572,9 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code, unsigned long para
 
 	switch (code) {
 	case CMDQ_IOCTL_EXEC_COMMAND:
-		if (copy_from_user(&command, (void *)param, sizeof(cmdqCommandStruct)))
+	case CMDQ_IOCTL_EXEC_COMMAND_LEGACY:
+		memset(&command, 0, sizeof(command));
+		if (copy_from_user(&command, (void *)param, _IOC_SIZE(code)))
 			return -EFAULT;
 
 		if (command.regRequest.count > CMDQ_MAX_DUMP_REG_COUNT ||
@@ -554,7 +598,11 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code, unsigned long para
 		}
 		break;
 	case CMDQ_IOCTL_ASYNC_JOB_EXEC:
-		if (copy_from_user(&job, (void *)param, sizeof(cmdqJobStruct)))
+	case CMDQ_IOCTL_ASYNC_JOB_EXEC_LEGACY:
+		memset(&job, 0, sizeof(job));
+		if (copy_from_user(&job.command, (void *)param,
+				   code == CMDQ_IOCTL_ASYNC_JOB_EXEC ?
+				   sizeof(job.command) : CMDQ_LEGACY_COMMAND_SIZE))
 			return -EFAULT;
 
 		if (job.command.regRequest.count > CMDQ_MAX_DUMP_REG_COUNT ||
@@ -603,7 +651,15 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code, unsigned long para
 
 		if (status >= 0) {
 			job.hJob = (unsigned long)pTask;
-			if (copy_to_user((void *)param, (void *)&job, sizeof(cmdqJobStruct))) {
+			if (code == CMDQ_IOCTL_ASYNC_JOB_EXEC_LEGACY) {
+				if (copy_to_user((void *)param, &job.command,
+						 CMDQ_LEGACY_COMMAND_SIZE) ||
+				    copy_to_user((void *)param + CMDQ_LEGACY_COMMAND_SIZE,
+						 &job.hJob, sizeof(job.hJob))) {
+					CMDQ_ERR("CMDQ_IOCTL_ASYNC_JOB_EXEC copy_to_user failed\n");
+					return -EFAULT;
+				}
+			} else if (copy_to_user((void *)param, (void *)&job, sizeof(cmdqJobStruct))) {
 				CMDQ_ERR("CMDQ_IOCTL_ASYNC_JOB_EXEC copy_to_user failed\n");
 				return -EFAULT;
 			}
@@ -791,6 +847,8 @@ static long cmdq_ioctl(struct file *pFile, unsigned int code, unsigned long para
 			}
 		} while (0);
 		break;
+	case CMDQ_IOCTL_QUERY_DTS_LEGACY:
+		return cmdq_driver_query_legacy_dts(param);
 	case CMDQ_IOCTL_QUERY_DTS:
 		do {
 			cmdqDTSDataStruct *pDtsData;
@@ -836,6 +894,9 @@ static long cmdq_ioctl_compat(struct file *pFile, unsigned int code, unsigned lo
 	case CMDQ_IOCTL_QUERY_CAP_BITS:
 	case CMDQ_IOCTL_QUERY_DTS:
 	case CMDQ_IOCTL_NOTIFY_ENGINE:
+	case CMDQ_IOCTL_EXEC_COMMAND_LEGACY:
+	case CMDQ_IOCTL_ASYNC_JOB_EXEC_LEGACY:
+	case CMDQ_IOCTL_QUERY_DTS_LEGACY:
 		/* All ioctl structures should be the same size in 32-bit and 64-bit linux. */
 		return cmdq_ioctl(pFile, code, param);
 	case CMDQ_IOCTL_LOCK_MUTEX:
@@ -1002,6 +1063,12 @@ static int cmdq_probe(struct platform_device *pDevice)
 		return -EFAULT;
 	}
 #endif
+
+	/* global ioctl access point (/proc/mtk_cmdq) for legacy clients */
+	if (NULL == proc_create(CMDQ_DRIVER_DEVICE_NAME, 0644, NULL, &cmdqOP)) {
+		CMDQ_ERR("CMDQ procfs node create failed\n");
+		return -EFAULT;
+	}
 
 	/* proc debug access point */
 	cmdq_create_debug_entries();
